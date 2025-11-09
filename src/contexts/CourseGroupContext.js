@@ -115,6 +115,7 @@ export const CourseGroupProvider = ({ children }) => {
         localStorage.setItem(`joinedGroups_${user.id}`, JSON.stringify(defaultGroups));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const joinGroup = (course) => {

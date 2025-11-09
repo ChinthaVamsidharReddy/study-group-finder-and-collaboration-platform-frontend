@@ -14,7 +14,6 @@ import MessageBubble from "../chat/MessageBubble"; // adjust import path to your
 import MessageInput from "../chat/MessageInput"; // optional - if you want to reuse your MessageInput
 
 const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
-const token = localStorage.getItem("token");
 
 const MessagingWidget = () => {
   const navigate = useNavigate();
@@ -80,10 +79,12 @@ const MessagingWidget = () => {
 
   useEffect(() => {
     loadGroups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // fetch old messages (same normalization + status logic you provided)
   const fetchOldMessages = async (groupId) => {
+    const token = localStorage.getItem("token");
     setLoadingOld(true);
     try {
       const res = await fetch(`${API_BASE}/chat/messages/${groupId}`, {
@@ -306,6 +307,7 @@ const MessagingWidget = () => {
   useEffect(() => {
     // whenever combinedMessages changes, scroll to bottom slightly
     scrollToBottom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [combinedMessages.length]);
 
   // Rendering helpers

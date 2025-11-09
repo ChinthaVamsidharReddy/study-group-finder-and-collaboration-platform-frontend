@@ -33,7 +33,7 @@ export const CoursesProvider = ({ children }) => {
       }
     };
     fetchEnrolledCourses();
-  }, [user]);
+  }, [user?.id]);
 
   return (
     <CoursesContext.Provider value={{ enrolledCourses }}>

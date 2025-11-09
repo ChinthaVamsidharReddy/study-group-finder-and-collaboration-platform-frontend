@@ -96,6 +96,7 @@ const ChatList = () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('studyGroupsUpdated', handleCustomStorageChange);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
 

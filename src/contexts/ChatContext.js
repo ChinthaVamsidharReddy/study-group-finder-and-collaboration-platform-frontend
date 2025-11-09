@@ -125,6 +125,7 @@ export const ChatProvider = ({ children }) => {
       subQueueRef.current.clear();
       window.removeEventListener("chat:readReceipt", onReadReceipt);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   /* ---------------------- Helper: Add Message ---------------------- */
@@ -222,31 +223,31 @@ export const ChatProvider = ({ children }) => {
       return;
     }
 
-// helper to update status in a single place
-  const updateMessageStatus = (messageId, deliveredBy = [], readBy = [], totalRecipients, statusType) => {
-    setMessages((prev) => {
-      const arr = Array.isArray(prev[groupId]) ? [...prev[groupId]] : [];
-      const updated = arr.map((m) => {
-        if (String(m.id) === String(messageId)) {
-          const isOwn = String(m.senderId) === String(user?.id || localStorage.getItem("userId"));
-          const delivered = Array.isArray(deliveredBy) ? deliveredBy : m.deliveredBy || [];
-          const readArr = Array.isArray(readBy) ? readBy : m.readBy || [];
-          const total = Number.isInteger(totalRecipients) ? totalRecipients : m.totalRecipients || 1;
+    // Helper to update message status in a single place
+    const updateMessageStatus = (messageId, deliveredBy = [], readBy = [], totalRecipients) => {
+      setMessages((prev) => {
+        const arr = Array.isArray(prev[groupId]) ? [...prev[groupId]] : [];
+        const updated = arr.map((m) => {
+          if (String(m.id) === String(messageId)) {
+            const isOwn = String(m.senderId) === String(user?.id || localStorage.getItem("userId"));
+            const delivered = Array.isArray(deliveredBy) ? deliveredBy : m.deliveredBy || [];
+            const readArr = Array.isArray(readBy) ? readBy : m.readBy || [];
+            const total = Number.isInteger(totalRecipients) ? totalRecipients : m.totalRecipients || 1;
 
-          let status = m.status;
-          if (isOwn) {
-            if ((readArr?.length || 0) >= total) status = "read";
-            else if ((delivered?.length || 0) >= total) status = "delivered";
-            else status = "sent";
+            let status = m.status;
+            if (isOwn) {
+              if ((readArr?.length || 0) >= total) status = "read";
+              else if ((delivered?.length || 0) >= total) status = "delivered";
+              else status = "sent";
+            }
+
+            return { ...m, deliveredBy: delivered, readBy: readArr, totalRecipients: total, status };
           }
-
-          return { ...m, deliveredBy: delivered, readBy: readArr, totalRecipients: total, status };
-        }
-        return m;
+          return m;
+        });
+        return { ...prev, [groupId]: updated };
       });
-      return { ...prev, [groupId]: updated };
-    });
-  };
+    };
 
     switch (type) {
 /* ---------- DELIVERY OR READ RECEIPTS ---------- */
@@ -254,9 +255,9 @@ export const ChatProvider = ({ children }) => {
     case "delivered":
     case "read_receipt": {
       const content = payload.message || payload.content || payload;
-      const { messageId, deliveredBy, readBy, totalRecipients, statusType } = content || {};
+      const { messageId, deliveredBy, readBy, totalRecipients } = content || {};
       if (!messageId) return;
-      updateMessageStatus(messageId, deliveredBy, readBy, totalRecipients, statusType);
+      updateMessageStatus(messageId, deliveredBy, readBy, totalRecipients);
       break;
     }
 
@@ -332,79 +333,6 @@ export const ChatProvider = ({ children }) => {
             });
           }
         }
-        break;
-      }
-      case "delivered": {
-        const upd = payload.message || payload.content || payload;
-        const { messageId, deliveredBy, readBy, totalRecipients } = upd;
-        if (!messageId) return;
-        setMessages((prev) => {
-          const arr = Array.isArray(prev[groupId]) ? [...prev[groupId]] : [];
-          const updated = arr.map((m) => {
-            if (String(m.id) === String(messageId)) {
-              const isOwn = String(m.senderId) === String(user?.id || localStorage.getItem("userId"));
-              const delivered = Array.isArray(deliveredBy) ? deliveredBy : (Array.isArray(m.deliveredBy) ? m.deliveredBy : []);
-              const readArr = Array.isArray(readBy) ? readBy : (Array.isArray(m.readBy) ? m.readBy : []);
-              const total = Number.isInteger(totalRecipients) ? totalRecipients : m.totalRecipients;
-              let status = m.status;
-              if (isOwn && total != null) {
-                if ((readArr?.length || 0) >= total) status = "read";
-                else if ((delivered?.length || 0) >= total) status = "delivered";
-                else status = "sent";
-              }
-              return { ...m, deliveredBy: delivered, readBy: readArr, totalRecipients: total, status };
-            }
-            return m;
-          });
-          return { ...prev, [groupId]: updated };
-        });
-        break;
-      }
-
-      case "read_receipt": {
-        const upd = payload.message || payload.content || payload;
-        const { messageId, deliveredBy, readBy, totalRecipients } = upd;
-        if (!messageId) return;
-        setMessages((prev) => {
-          const arr = Array.isArray(prev[groupId]) ? [...prev[groupId]] : [];
-          const updated = arr.map((m) => {
-            if (String(m.id) === String(messageId)) {
-              const isOwn = String(m.senderId) === String(user?.id || localStorage.getItem("userId"));
-              const delivered = Array.isArray(deliveredBy) ? deliveredBy : (Array.isArray(m.deliveredBy) ? m.deliveredBy : []);
-              const readArr = Array.isArray(readBy) ? readBy : (Array.isArray(m.readBy) ? m.readBy : []);
-              const total = Number.isInteger(totalRecipients) ? totalRecipients : m.totalRecipients;
-              let status = m.status;
-              if (isOwn && total != null) {
-                if ((readArr?.length || 0) >= total) status = "read";
-                else if ((delivered?.length || 0) >= total) status = "delivered";
-                else status = "sent";
-              }
-              return { ...m, deliveredBy: delivered, readBy: readArr, totalRecipients: total, status };
-            }
-            return m;
-          });
-          return { ...prev, [groupId]: updated };
-        });
-        break;
-      }
-
-      case "typing": {
-        const tUser = payload.message || payload;
-        if (!tUser?.userId || tUser.userId === user?.id) return;
-
-        const normalizedUser = {
-          userId: String(tUser.userId),
-          userName: tUser.userName || tUser.username || tUser.name || "Someone",
-        };
-
-        setTypingUsers((prev) => {
-          const existing = prev[groupId] || [];
-          const updated = [
-            ...existing.filter((u) => u.userId !== normalizedUser.userId),
-            normalizedUser,
-          ];
-          return { ...prev, [groupId]: updated };
-        });
         break;
       }
 
@@ -863,7 +791,6 @@ const votePoll = (groupId, messageId, pollId, optionIds) => {
     typingUsers,
     onlineUsers,
     unreadCount,
-    votePoll,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

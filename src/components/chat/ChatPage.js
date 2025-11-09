@@ -19,7 +19,6 @@ import SessionDetailModal from './SessionDetailModal';
 
 
 const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
-const token = localStorage.getItem("token");
 
 const ChatPage = () => {
   const { groupId } = useParams();
@@ -155,7 +154,8 @@ const ChatPage = () => {
   }, [oldMessages, messages, sessionEntries]);
 
   // ✅ Define helper functions before hooks (they reference state but aren't hooks themselves)
-  const fetchGroupDetails = async (id) => {
+  const fetchGroupDetails = React.useCallback(async (id) => {
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_BASE}/groups/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -169,9 +169,10 @@ const ChatPage = () => {
     } catch (err) {
       console.error('Error fetching group details:', err);
     }
-  };
+  }, []);
 
-  const fetchGroupSessions = async (id) => {
+  const fetchGroupSessions = React.useCallback(async (id) => {
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_BASE}/groups/${id}/sessions`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -183,9 +184,10 @@ const ChatPage = () => {
     } catch (err) {
       console.error("Error fetching sessions:", err);
     }
-  };
+  }, []);
 
-  const fetchOldMessages = async (id) => {
+  const fetchOldMessages = React.useCallback(async (id) => {
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/chat/messages/${id}`, {
@@ -270,9 +272,10 @@ const ChatPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const fetchGroupPolls = async (id) => {
+  const fetchGroupPolls = React.useCallback(async (id) => {
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`https://study-group-finder-and-collaboration.onrender.com/polls/group/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -322,11 +325,11 @@ const ChatPage = () => {
     } catch (err) {
       console.error("Error fetching group polls:", err);
     }
-  };
+  }, []);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = React.useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   // ✅ ALL useEffect hooks MUST be called before any conditional returns
   // ✅ Fetch group info & messages + setup WebSocket subscription
@@ -413,13 +416,13 @@ const ChatPage = () => {
       window.removeEventListener("poll:created", handlePollCreated);
       window.removeEventListener("session:update", handleSessionUpdate);
     };
-  }, [groupId, user, setActiveGroup, markAsRead, openGroup, closeGroup]);
+  }, [groupId, user, setActiveGroup, markAsRead, openGroup, closeGroup, fetchGroupDetails, fetchOldMessages, fetchGroupPolls]);
 
   // ✅ Fetch sessions for this group
   useEffect(() => {
     if (!groupId || !user) return;
     fetchGroupSessions(groupId);
-  }, [groupId, user]);
+  }, [groupId, user, fetchGroupSessions]);
 
   // ✅ IntersectionObserver to detect visible messages and send read acks once
   useEffect(() => {
@@ -482,7 +485,7 @@ const ChatPage = () => {
   useEffect(() => {
     if (!user) return;
     scrollToBottom();
-  }, [messages, oldMessages, user]);
+  }, [messages, oldMessages, user, scrollToBottom]);
 
   // ✅ Handle loading state after ALL hooks are called
   if (!user) {
@@ -501,6 +504,7 @@ const ChatPage = () => {
     }
 
     try {
+      const token = localStorage.getItem("token");
       const file = messageData.file.file;
       const formData = new FormData();
       formData.append("file", file);
@@ -547,6 +551,7 @@ const ChatPage = () => {
   // ✅ Handle session RSVP
   const handleSessionRsvp = async (session, response) => {
     try {
+      const token = localStorage.getItem("token");
       const userId = user?.id || localStorage.getItem("userId");
       const res = await fetch(`${API_BASE}/sessions/${session.id}/rsvp`, {
         method: 'POST',

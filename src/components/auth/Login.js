@@ -14,21 +14,21 @@ const Login = () => {
 
   // TODO: Remove demo accounts when backend is integrated
   // These are for frontend development only
-  const demoAccounts = [
-    { email: 'student@example.com', password: 'student123', label: 'Student Demo' },
-    { email: 'teacher@example.com', password: 'teacher123', label: 'Teacher Demo' },
-    { email: 'admin@example.com', password: 'admin123', label: 'Admin Demo' },
-  ];
+  // const demoAccounts = [
+  //   { email: 'student@example.com', password: 'student123', label: 'Student Demo' },
+  //   { email: 'teacher@example.com', password: 'teacher123', label: 'Teacher Demo' },
+  //   { email: 'admin@example.com', password: 'admin123', label: 'Admin Demo' },
+  // ];
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
   };
 
-  const handleDemoAccountClick = (account) => {
-    setFormData({ email: account.email, password: account.password });
-    setError('');
-  };
+  // const handleDemoAccountClick = (account) => {
+  //   setFormData({ email: account.email, password: account.password });
+  //   setError('');
+  // };
 
   // TODO: Backend Integration - Login Handler
   // This calls the login function from AuthContext

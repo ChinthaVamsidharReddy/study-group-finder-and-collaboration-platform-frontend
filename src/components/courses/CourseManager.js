@@ -289,8 +289,7 @@ import axios from 'axios';
 import { PlusIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 const API_BASE_URL = "https://study-group-finder-and-collaboration.onrender.com/courses"; 
-const USER_ID = localStorage.getItem("userId"); // 🔹 Replace with logged-in userId (from auth/JWT later)
-const token =localStorage.getItem("token")
+
 const CourseManager = () => {
   const [availableCourses, setAvailableCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
@@ -343,6 +342,8 @@ const CourseManager = () => {
 
   // Load enrolled courses
   const loadEnrolledCourses = async () => {
+    const USER_ID = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     try {
       const response = await axios.get(`${API_BASE_URL}/enrolled/${USER_ID}`,{
       headers: {
@@ -359,10 +360,12 @@ const CourseManager = () => {
   useEffect(() => {
     loadCourses();
     loadEnrolledCourses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Enroll in course
   const enrollInCourse = async (course) => {
+    const USER_ID = localStorage.getItem("userId");
     setLoading(true);
     try {
       await axios.post(`${API_BASE_URL}/enroll/${USER_ID}/${course.courseCode}`);
@@ -377,6 +380,7 @@ const CourseManager = () => {
 
   // Unenroll from course
   const unenrollFromCourse = async (course) => {
+    const USER_ID = localStorage.getItem("userId");
     setLoading(true);
     try {
       await axios.delete(`${API_BASE_URL}/remove/${USER_ID}/${course.courseCode}`);

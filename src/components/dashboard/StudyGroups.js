@@ -59,12 +59,6 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || "https://study-group-find
 // - Error handling follows existing patterns in the codebase
 // ========================================
 
-// User Authentication - Retrieved from localStorage
-// Backend should provide these after successful login
-const userId = localStorage.getItem("userId");
-const token = localStorage.getItem("token");
-
-
 // Course List - Static data for demo
 // TODO: Backend Integration Required
 // API Endpoint: GET /api/courses
@@ -166,6 +160,8 @@ const handleViewJoinRequests = async (group) => {
   // Headers: Authorization: Bearer {token}
   // Response: Array of Group objects
   const loadAllGroups = async () => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       // Backend API calls
@@ -186,10 +182,11 @@ const handleViewJoinRequests = async (group) => {
         setAvailableGroups(Array.isArray(availableJson) ? availableJson.map(normalizeGroup) : []);
       } catch (backendErr) {
         // Fallback to localStorage demo mode
+        const currentUserId = userId;
         const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
-        const created = savedGroups.filter(g => g.createdBy === userId);
-        const joined = savedGroups.filter(g => g.members.includes(userId) && g.createdBy !== userId);
-        const available = savedGroups.filter(g => !g.members.includes(userId) && g.createdBy !== userId && g.privacy === "PUBLIC");
+        const created = savedGroups.filter(g => g.createdBy === currentUserId);
+        const joined = savedGroups.filter(g => g.members.includes(currentUserId) && g.createdBy !== currentUserId);
+        const available = savedGroups.filter(g => !g.members.includes(currentUserId) && g.createdBy !== currentUserId && g.privacy === "PUBLIC");
         
         setMyGroups(created.map(normalizeGroup));
         setJoinedGroups(joined.map(normalizeGroup));
@@ -209,6 +206,8 @@ const handleViewJoinRequests = async (group) => {
   // Request Body: {userId, name, description, courseId, privacy, code, coursename}
   // Response: Created group object with generated ID
   const createGroup = async (formData) => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       const newGroup = {
@@ -269,6 +268,8 @@ const handleViewJoinRequests = async (group) => {
   // Headers: Authorization: Bearer {token}
   // Response: Success message or "Request sent" for private groups
   const joinGroup = async (group) => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       // Backend API call
@@ -293,17 +294,18 @@ const handleViewJoinRequests = async (group) => {
           setPendingRequests(updatedPending);
           localStorage.setItem("pendingGroups", JSON.stringify(updatedPending));
         } else {
+          const currentUserId = userId;
           const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
           const groupIndex = savedGroups.findIndex(g => g.id === group.id);
           if (groupIndex !== -1) {
-            if (!savedGroups[groupIndex].members.includes(userId)) {
-              savedGroups[groupIndex].members.push(userId);
+            if (!savedGroups[groupIndex].members.includes(currentUserId)) {
+              savedGroups[groupIndex].members.push(currentUserId);
               savedGroups[groupIndex].memberCount = savedGroups[groupIndex].members.length;
               localStorage.setItem("studyGroups", JSON.stringify(savedGroups));
               
               // Dispatch custom event to notify chat components
               window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
-                detail: { action: 'joined', groupId: group.id, userId }
+                detail: { action: 'joined', groupId: group.id, userId: currentUserId }
               }));
             }
           }
@@ -322,6 +324,8 @@ const handleViewJoinRequests = async (group) => {
   // Headers: Authorization: Bearer {token}
   // Response: Success confirmation
   const leaveGroup = async (groupId) => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       // Backend API call
@@ -333,10 +337,11 @@ const handleViewJoinRequests = async (group) => {
         if (!res.ok) throw new Error("Failed to leave group");
       } catch (backendErr) {
         // Fallback to localStorage
+        const currentUserId = userId;
         const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
         const groupIndex = savedGroups.findIndex(g => g.id === groupId);
         if (groupIndex !== -1) {
-          savedGroups[groupIndex].members = savedGroups[groupIndex].members.filter(m => m !== userId);
+          savedGroups[groupIndex].members = savedGroups[groupIndex].members.filter(m => m !== currentUserId);
           savedGroups[groupIndex].memberCount = savedGroups[groupIndex].members.length;
           localStorage.setItem("studyGroups", JSON.stringify(savedGroups));
         }
@@ -361,6 +366,8 @@ const handleViewJoinRequests = async (group) => {
   // Response: Success confirmation
   // Note: Only group creator can delete
   const deleteGroup = async (groupId) => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     if (!window.confirm("Are you sure you want to delete this group?")) return;
     setLoading(true);
     try {
@@ -399,6 +406,7 @@ const handleViewJoinRequests = async (group) => {
   // MODAL INTEGRATION: Results are displayed in JoinRequestsModal component
   // ERROR HANDLING: Should handle network errors gracefully
   const fetchJoinRequests = async (groupId) => {
+    const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_BASE}/${groupId}/requests`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -420,6 +428,8 @@ const handleViewJoinRequests = async (group) => {
   // POST-ACTION: Refreshes join requests list and group data
   // UI FEEDBACK: Modal updates automatically after successful approval
     const approveRequest = async (memberId, groupId) => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/approve/${memberId}?adminId=${userId}`, {
@@ -458,6 +468,8 @@ const handleViewJoinRequests = async (group) => {
   // POST-ACTION: Refreshes join requests list
   // UI FEEDBACK: Modal updates automatically after successful rejection
   const rejectRequest = async (memberId, groupId) => {
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/reject/${memberId}?adminId=${userId}`, {
