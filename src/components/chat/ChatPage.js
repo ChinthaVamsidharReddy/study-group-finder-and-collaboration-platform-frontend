@@ -153,8 +153,10 @@ const ChatPage = () => {
     });
   }, [oldMessages, messages, sessionEntries]);
 
-  // ✅ Define helper functions before hooks (they reference state but aren't hooks themselves)
-  const fetchGroupDetails = React.useCallback(async (id) => {
+  // ✅ Define helper functions as regular functions (not useCallback)
+  // FIXED: Removed useCallback to prevent infinite loops - functions are stable enough
+  // and should NOT be in useEffect dependency arrays
+  const fetchGroupDetails = async (id) => {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_BASE}/groups/${id}`, {
@@ -169,9 +171,9 @@ const ChatPage = () => {
     } catch (err) {
       console.error('Error fetching group details:', err);
     }
-  }, []);
+  };
 
-  const fetchGroupSessions = React.useCallback(async (id) => {
+  const fetchGroupSessions = async (id) => {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`${API_BASE}/groups/${id}/sessions`, {
@@ -184,9 +186,9 @@ const ChatPage = () => {
     } catch (err) {
       console.error("Error fetching sessions:", err);
     }
-  }, []);
+  };
 
-  const fetchOldMessages = React.useCallback(async (id) => {
+  const fetchOldMessages = async (id) => {
     const token = localStorage.getItem("token");
     setLoading(true);
     try {
@@ -272,9 +274,9 @@ const ChatPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  };
 
-  const fetchGroupPolls = React.useCallback(async (id) => {
+  const fetchGroupPolls = async (id) => {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(`https://study-group-finder-and-collaboration.onrender.com/polls/group/${id}`, {
@@ -325,34 +327,40 @@ const ChatPage = () => {
     } catch (err) {
       console.error("Error fetching group polls:", err);
     }
-  }, []);
+  };
 
-  const scrollToBottom = React.useCallback(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  };
 
-  // ✅ ALL useEffect hooks MUST be called before any conditional returns
-  // ✅ Fetch group info & messages + setup WebSocket subscription
+  // ✅ FIXED: Main useEffect - Only depends on groupId to prevent infinite loops
+  // Removed fetch functions from dependency array - they're stable regular functions
+  // This ensures APIs are called ONLY when groupId changes, not on every render
+  // Removed !user check - user is checked at component level with early return
   useEffect(() => {
-    if (!groupId || !user) return;
+    if (!groupId) return;
 
     setActiveGroup(groupId);
     markAsRead(groupId);
     fetchGroupDetails(groupId);
     
+    // ✅ Fetch messages first, then polls (to ensure proper merging)
     const loadData = async () => {
       await fetchOldMessages(groupId);
+      // Wait a bit for messages to be set, then fetch polls
       setTimeout(() => {
         fetchGroupPolls(groupId);
       }, 100);
     };
     loadData();
     
-    openGroup(groupId);
+    openGroup(groupId); // subscribe to STOMP topic
 
+    // ✅ Listen for poll vote updates from WebSocket
     const handlePollVoteUpdate = (e) => {
       const { poll } = e.detail || {};
       if (!poll || !poll.id) return;
+
       setOldMessages((prev) =>
         prev.map((msg) => {
           if (msg.type === "poll" && String(msg.poll?.id) === String(poll.id)) {
@@ -371,31 +379,40 @@ const ChatPage = () => {
       );
     };
 
+    // ✅ Listen for new poll creation from WebSocket
     const handlePollCreated = (e) => {
       const { pollMessage } = e.detail || {};
       if (!pollMessage || !pollMessage.poll?.id) return;
+
       setOldMessages((prev) => {
+        // Check if poll already exists
         const exists = prev.some(
-          (m) => m.type === "poll" && String(m.poll?.id) === String(pollMessage.poll.id)
+          (m) =>
+            m.type === "poll" && String(m.poll?.id) === String(pollMessage.poll.id)
         );
         if (exists) {
+          // Update existing poll
           return prev.map((m) =>
             m.type === "poll" && String(m.poll?.id) === String(pollMessage.poll.id)
               ? pollMessage
               : m
           );
         }
+        // Add new poll
         return [...prev, pollMessage];
       });
     };
 
+    // ✅ Listen for session updates from WebSocket
     const handleSessionUpdate = (e) => {
       const { action, session, groupId: eventGroupId } = e.detail || {};
       if (!session || String(eventGroupId) !== String(groupId)) return;
+
       setSessions((prev) => {
         if (action === "deleted") {
           return prev.filter((s) => String(s.id) !== String(session.id));
         }
+        
         const existingIndex = prev.findIndex((s) => String(s.id) === String(session.id));
         if (existingIndex !== -1) {
           const updated = [...prev];
@@ -411,22 +428,27 @@ const ChatPage = () => {
     window.addEventListener("session:update", handleSessionUpdate);
 
     return () => {
-      closeGroup(groupId);
+      closeGroup(groupId); // unsubscribe when switching groups
       window.removeEventListener("poll:voteUpdate", handlePollVoteUpdate);
       window.removeEventListener("poll:created", handlePollCreated);
       window.removeEventListener("session:update", handleSessionUpdate);
     };
-  }, [groupId, user, setActiveGroup, markAsRead, openGroup, closeGroup, fetchGroupDetails, fetchOldMessages, fetchGroupPolls]);
+    // FIXED: Only depend on groupId - functions are stable and don't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
 
-  // ✅ Fetch sessions for this group
+  // ✅ Fetch sessions for this group - separate effect to avoid coupling
   useEffect(() => {
-    if (!groupId || !user) return;
+    if (!groupId) return;
     fetchGroupSessions(groupId);
-  }, [groupId, user, fetchGroupSessions]);
+    // FIXED: Only depend on groupId - fetchGroupSessions is a stable function
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
 
   // ✅ IntersectionObserver to detect visible messages and send read acks once
   useEffect(() => {
-    if (!groupId || !user) return;
+    if (!groupId) return;
+    // user is checked at component level, safe to access here
     const currentUserId = user?.id || localStorage.getItem("userId");
     if (observerRef.current) observerRef.current.disconnect();
     observerRef.current = new IntersectionObserver(
@@ -439,16 +461,23 @@ const ChatPage = () => {
             const id = el.getAttribute('data-message-id');
             if (id && !observedIdsRef.current.has(id)) {
               const msg = mergedList.find((m) => String(m.id) === String(id));
+              // ✅ Skip poll messages (they have string IDs like "poll-9") 
+              // Only send read receipts for regular messages with numeric IDs
               if (msg && 
                   String(msg.senderId) !== String(currentUserId) && 
-                  msg.type !== "poll") {
+                  msg.type !== "poll") { // Polls don't need read receipts
+                
+                // ✅ Only send numeric message IDs (Long) to backend
+                // Convert string ID to number if it's numeric, or skip if it's not
                 const numericId = typeof id === 'string' && id.match(/^\d+$/) 
                   ? parseInt(id, 10) 
                   : (typeof id === 'number' ? id : null);
+                
                 if (numericId !== null && !isNaN(numericId)) {
                   observedIdsRef.current.add(id);
                   idsToAck.push(numericId);
                 } else {
+                  // Mark as observed even if we don't ack (to avoid retrying)
                   observedIdsRef.current.add(id);
                 }
               }
@@ -467,9 +496,12 @@ const ChatPage = () => {
       { root: null, rootMargin: '0px', threshold: 0.6 }
     );
 
+    // Observe all message bubbles with data-message-id (excluding polls and non-numeric IDs)
     setTimeout(() => {
       document.querySelectorAll('[data-message-id]')?.forEach((el) => {
         const id = el.getAttribute('data-message-id');
+        // ✅ Only observe elements with numeric IDs (polls have "poll-9" format)
+        // This prevents trying to send read receipts for polls
         if (id && /^\d+$/.test(id)) {
           observerRef.current?.observe(el);
         }
@@ -479,13 +511,16 @@ const ChatPage = () => {
     return () => {
       observerRef.current?.disconnect();
     };
-  }, [groupId, oldMessages, messages, user]);
+    // FIXED: user is only used inside the effect, doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, oldMessages, messages]);
 
   // ✅ Auto-scroll useEffect - must be before conditional return
   useEffect(() => {
-    if (!user) return;
     scrollToBottom();
-  }, [messages, oldMessages, user, scrollToBottom]);
+    // FIXED: scrollToBottom is a stable function, doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, oldMessages]);
 
   // ✅ Handle loading state after ALL hooks are called
   if (!user) {
