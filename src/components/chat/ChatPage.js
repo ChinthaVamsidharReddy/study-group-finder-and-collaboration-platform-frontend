@@ -982,7 +982,6 @@
 
 
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
@@ -1001,18 +1000,15 @@ import SessionForm from './SessionForm';
 import SessionCard from './SessionCard';
 import SessionPoll from './SessionPoll';
 import SessionDetailModal from './SessionDetailModal';
-import { fetchWithRetry, clearRequestCache } from '../../utils/apiClient';
 
-const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
-const POLLS_BASE = "https://study-group-finder-and-collaboration.onrender.com";
+
+const API_BASE = "http://localhost:8080/api";
+const token = localStorage.getItem("token");
 
 const ChatPage = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  // ✅ AbortController refs to cancel in-flight requests when groupId changes
-  const abortControllersRef = useRef([]);
 
   if (!user) {
     return (
@@ -1065,38 +1061,21 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
 
 
 
-  // ✅ FIXED: Main useEffect - Only depends on groupId to prevent infinite loops
-  // ✅ OPTIMIZED: Added request cancellation and deduplication
+  // ✅ Fetch group info & messages + setup WebSocket subscription
   useEffect(() => {
     if (!groupId) return;
-
-    // ✅ Cancel all previous requests when groupId changes
-    abortControllersRef.current.forEach(controller => {
-      if (controller && !controller.signal.aborted) {
-        controller.abort();
-      }
-    });
-    abortControllersRef.current = [];
-    
-    // ✅ Clear request cache when switching groups
-    clearRequestCache();
 
     setActiveGroup(groupId);
     markAsRead(groupId);
     fetchGroupDetails(groupId);
     
     // ✅ Fetch messages first, then polls (to ensure proper merging)
-    // FIXED: Sequential loading to prevent race conditions
     const loadData = async () => {
-      try {
-        await fetchOldMessages(groupId);
-        // Wait a bit for messages to be set, then fetch polls
-        setTimeout(() => {
-          fetchGroupPolls(groupId);
-        }, 200); // Increased delay to ensure messages are processed
-      } catch (err) {
-        console.error("Error loading chat data:", err);
-      }
+      await fetchOldMessages(groupId);
+      // Wait a bit for messages to be set, then fetch polls
+      setTimeout(() => {
+        fetchGroupPolls(groupId);
+      }, 100);
     };
     loadData();
     
@@ -1174,64 +1153,30 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
     window.addEventListener("session:update", handleSessionUpdate);
 
     return () => {
-      // ✅ Cancel all pending requests on unmount or groupId change
-      abortControllersRef.current.forEach(controller => {
-        if (controller && !controller.signal.aborted) {
-          controller.abort();
-        }
-      });
-      abortControllersRef.current = [];
-      
       closeGroup(groupId); // unsubscribe when switching groups
       window.removeEventListener("poll:voteUpdate", handlePollVoteUpdate);
       window.removeEventListener("poll:created", handlePollCreated);
       window.removeEventListener("session:update", handleSessionUpdate);
     };
-    // FIXED: Only depend on groupId - functions are stable and don't need to be in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
-  // ✅ Fetch sessions for this group - separate effect to avoid coupling
+  // ✅ Fetch sessions for this group
   useEffect(() => {
     if (!groupId) return;
     fetchGroupSessions(groupId);
-    // FIXED: Only depend on groupId - fetchGroupSessions is a stable function
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
 
   const fetchGroupSessions = async (id) => {
-    const token = localStorage.getItem("token");
-    const abortController = new AbortController();
-    abortControllersRef.current.push(abortController);
-    
     try {
-      const res = await fetchWithRetry(
-        `${API_BASE}/groups/${id}/sessions`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: abortController.signal,
-        },
-        {
-          retries: 2,
-          timeout: 20000, // 20s timeout for sessions
-          skipCache: false, // Allow caching
-        }
-      );
-      
+      const res = await fetch(`${API_BASE}/groups/${id}/sessions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setSessions(data || []);
-      } else {
-        console.error("Failed to fetch sessions:", res.status);
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error("Error fetching sessions:", err);
-      }
-    } finally {
-      // Remove from abort controllers list
-      const index = abortControllersRef.current.indexOf(abortController);
-      if (index > -1) abortControllersRef.current.splice(index, 1);
+      console.error("Error fetching sessions:", err);
     }
   };
 
@@ -1302,64 +1247,30 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
     };
   }, [groupId, oldMessages, messages]);
 
-  // ✅ OPTIMIZED: Fetch group info with retry, timeout, and request deduplication
+  // ✅ Fetch group info
   const fetchGroupDetails = async (id) => {
-    const token = localStorage.getItem("token");
-    const abortController = new AbortController();
-    abortControllersRef.current.push(abortController);
-    
     try {
-      const res = await fetchWithRetry(
-        `${API_BASE}/groups/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: abortController.signal,
-        },
-        {
-          retries: 3,
-          timeout: 25000, // 25s timeout (Render free-tier can be slow)
-          skipCache: false, // Cache GET requests
-        }
-      );
-      
+      const res = await fetch(`${API_BASE}/groups/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setGroupInfo(data);
       } else {
-        console.error('Failed to fetch group details:', res.status);
+        console.error('Failed to fetch group details');
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Error fetching group details:', err);
-      }
-    } finally {
-      // Remove from abort controllers list
-      const index = abortControllersRef.current.indexOf(abortController);
-      if (index > -1) abortControllersRef.current.splice(index, 1);
+      console.error('Error fetching group details:', err);
     }
   };
 
-  // ✅ OPTIMIZED: Fetch old messages with retry, timeout, and request deduplication
+  // ✅ Fetch old messages
   const fetchOldMessages = async (id) => {
-    const token = localStorage.getItem("token");
-    const abortController = new AbortController();
-    abortControllersRef.current.push(abortController);
-    
     setLoading(true);
     try {
-      const res = await fetchWithRetry(
-        `${API_BASE}/chat/messages/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: abortController.signal,
-        },
-        {
-          retries: 3,
-          timeout: 30000, // 30s timeout for messages (can be large)
-          skipCache: false, // Cache GET requests
-        }
-      );
-      
+      const res = await fetch(`${API_BASE}/chat/messages/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         let data = await res.json();
 
@@ -1444,43 +1355,21 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
         console.error("Failed to fetch old messages:", res.status);
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error("Error fetching old messages:", err);
-        // ✅ Show user-friendly error message
-        if (err.message?.includes('timeout')) {
-          console.warn("Request timed out - Render free-tier may be sleeping. Retrying...");
-        }
-      }
+      console.error("Error fetching old messages:", err);
     } finally {
       setLoading(false);
-      // Remove from abort controllers list
-      const index = abortControllersRef.current.indexOf(abortController);
-      if (index > -1) abortControllersRef.current.splice(index, 1);
     }
   };
 
 
-  // ✅ OPTIMIZED: Fetch existing polls with retry, timeout, and request deduplication
-  const fetchGroupPolls = async (id) => {
-    const token = localStorage.getItem("token");
-    const abortController = new AbortController();
-    abortControllersRef.current.push(abortController);
-    
-    try {
-      const res = await fetchWithRetry(
-        `${POLLS_BASE}/polls/group/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: abortController.signal,
-        },
-        {
-          retries: 2,
-          timeout: 20000, // 20s timeout for polls
-          skipCache: false, // Cache GET requests
-        }
-      );
+  // ✅ Fetch existing polls for this group
+const fetchGroupPolls = async (id) => {
+  try {
+    const res = await fetch(`http://localhost:8080/polls/group/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (res.ok) {
+    if (res.ok) {
       const polls = await res.json();
       console.log(`📊 Fetched ${polls?.length || 0} polls for group ${id}`, polls);
       
@@ -1539,58 +1428,38 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
       console.error("Failed to fetch group polls:", res.status, res.statusText);
     }
   } catch (err) {
-    if (err.name !== 'AbortError') {
-      console.error("Error fetching group polls:", err);
-    }
-  } finally {
-    // Remove from abort controllers list
-    const index = abortControllersRef.current.indexOf(abortController);
-    if (index > -1) abortControllersRef.current.splice(index, 1);
+    console.error("Error fetching group polls:", err);
   }
 };
 
-  // ✅ OPTIMIZED: File upload with retry and timeout
-  const handleFileUpload = async (messageData) => {
-    if (!groupId) {
-      console.warn("No group ID found in route for file upload");
-      return;
+// ChatPage.js — handleFileUpload
+const handleFileUpload = async (messageData) => {
+  if (!groupId) {
+    console.warn("No group ID found in route for file upload");
+    return;
+  }
+
+  try {
+    const file = messageData.file.file; // from your FileUpload component
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("groupId", groupId);
+    formData.append("senderId", localStorage.getItem("userId"));
+    formData.append("senderName",localStorage.getItem("name"));
+
+    const res = await fetch(`${API_BASE}/files/upload`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` }, // don't set Content-Type, browser will set multipart
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => null);
+      throw new Error(`Upload failed: ${res.status} ${res.statusText} ${txt || ""}`);
     }
 
-    const token = localStorage.getItem("token");
-    const abortController = new AbortController();
-    abortControllersRef.current.push(abortController);
-
-    try {
-      const file = messageData.file.file;
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("groupId", groupId);
-      formData.append("senderId", localStorage.getItem("userId"));
-      formData.append("senderName", localStorage.getItem("name"));
-
-      const res = await fetchWithRetry(
-        `${API_BASE}/files/upload`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }, // don't set Content-Type, browser will set multipart
-          body: formData,
-          signal: abortController.signal,
-        },
-        {
-          retries: 2,
-          timeout: 60000, // 60s timeout for file uploads (can be large)
-          skipCache: true, // Don't cache POST requests
-          skipDeduplication: true, // Allow multiple file uploads
-        }
-      );
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => null);
-        throw new Error(`Upload failed: ${res.status} ${res.statusText} ${txt || ""}`);
-      }
-
-      const data = await res.json();
-      console.log("File uploaded successfully:", data);
+    const data = await res.json();
+    console.log("File uploaded successfully:", data);
 
     // IMPORTANT: DON'T call sendMessage(...) with an object payload here.
     // The backend already broadcasts the file message to /topic/group.{groupId}.
@@ -1607,16 +1476,11 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
     //   type: 'file',
     //   localOnly: true
     // });
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error("❌ File upload error:", err);
-      }
-    } finally {
-      // Remove from abort controllers list
-      const index = abortControllersRef.current.indexOf(abortController);
-      if (index > -1) abortControllersRef.current.splice(index, 1);
-    }
-  };
+
+  } catch (err) {
+    console.error("❌ File upload error:", err);
+  }
+};
 
 
 
@@ -1656,35 +1520,21 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
   //   }
   // };
 
-  // ✅ OPTIMIZED: Handle session RSVP with retry and timeout
+  // ✅ Handle session RSVP
   const handleSessionRsvp = async (session, response) => {
-    const token = localStorage.getItem("token");
-    const userId = user?.id || localStorage.getItem("userId");
-    const abortController = new AbortController();
-    abortControllersRef.current.push(abortController);
-    
     try {
-      const res = await fetchWithRetry(
-        `${API_BASE}/sessions/${session.id}/rsvp`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            userId: userId ? parseInt(userId, 10) : null,
-            response: response,
-          }),
-          signal: abortController.signal,
+      const userId = user?.id || localStorage.getItem("userId");
+      const res = await fetch(`${API_BASE}/sessions/${session.id}/rsvp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        {
-          retries: 2,
-          timeout: 20000, // 20s timeout
-          skipCache: true, // Don't cache POST requests
-          skipDeduplication: true, // Allow multiple RSVPs
-        }
-      );
+        body: JSON.stringify({
+          userId: userId ? parseInt(userId, 10) : null,
+          response: response,
+        }),
+      });
 
       if (res.ok) {
         const updatedSession = await res.json();
@@ -1694,22 +1544,11 @@ const typingUsers = (getTypingUsers(activeGroup) || []).filter(
       } else if (res.status === 403) {
         alert('Not authorized. Please sign in again.');
       } else {
-        try { 
-          const j = await res.json(); 
-          alert(j.message || 'RSVP failed'); 
-        } catch { 
-          alert('RSVP failed'); 
-        }
+        try { const j = await res.json(); alert(j.message || 'RSVP failed'); }
+        catch { alert('RSVP failed'); }
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        console.error('Error RSVPing to session:', err);
-        alert('Failed to RSVP. Please try again.');
-      }
-    } finally {
-      // Remove from abort controllers list
-      const index = abortControllersRef.current.indexOf(abortController);
-      if (index > -1) abortControllersRef.current.splice(index, 1);
+      console.error('Error RSVPing to session:', err);
     }
   };
 
