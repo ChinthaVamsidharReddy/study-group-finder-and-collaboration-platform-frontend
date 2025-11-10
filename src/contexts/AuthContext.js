@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userId');
     localStorage.removeItem('EnrolledCourses')
+    localStorage.removeItem('')
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };
