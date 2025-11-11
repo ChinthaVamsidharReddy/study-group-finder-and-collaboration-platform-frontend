@@ -5,8 +5,9 @@ import StudyGroups from './StudyGroups';
 import PeerSuggestions from './PeerSuggestions';
 import ChatList from '../chat/ChatList';
 import UserSessionsCalendar from './UserSessionsCalendar';
+import CalendarPage from '../calendar/CalendarPage';
 import { useCourses } from '../../contexts/CoursesContext';
-import { AcademicCapIcon, UserGroupIcon, UsersIcon, BookOpenIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import { AcademicCapIcon, UserGroupIcon, UsersIcon, BookOpenIcon, ChatBubbleLeftIcon, CalendarIcon } from '@heroicons/react/24/outline';
 
 const API_BASE_URL = "https://study-group-finder-and-collaboration.onrender.com/courses"; 
 
@@ -128,6 +129,7 @@ const Dashboard = () => {
     { id: 'groups', name: 'Study Groups', icon: UserGroupIcon },
     { id: 'peers', name: 'Find Peers', icon: UsersIcon },
     { id: 'chats', name: 'Chats', icon: ChatBubbleLeftIcon },
+    { id: 'calendar', name: 'Calendar', icon: CalendarIcon },
   ];
 
   const StatCard = ({ title, value, icon: Icon, color = 'primary' }) => (
@@ -255,6 +257,7 @@ const Dashboard = () => {
             {activeTab === 'groups' && <StudyGroups />}
             {activeTab === 'peers' && <PeerSuggestions />}
             {activeTab === 'chats' && <ChatList />}
+             {activeTab === 'calendar' && <CalendarPage />}
           </div>
         </div>
       </div>
