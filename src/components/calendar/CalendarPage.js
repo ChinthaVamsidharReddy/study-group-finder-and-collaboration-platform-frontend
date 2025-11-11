@@ -14,9 +14,9 @@ import SessionForm from '../chat/SessionForm';
 import SessionDetailModal from '../chat/SessionDetailModal';
 
 // TODO: Replace with environment variable
-// const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
+const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
 
-const API_BASE = "http://localhost:8080/api"
+// const API_BASE = "http://localhost:8080/api"
 const CalendarPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [sessions, setSessions] = useState([]);
