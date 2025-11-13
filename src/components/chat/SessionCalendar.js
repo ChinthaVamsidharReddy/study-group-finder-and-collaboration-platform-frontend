@@ -8,7 +8,8 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Kolkata");
 
-const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
+const API_BASE="https://study-group-finder-and-collaboration.onrender.com/api"
+// const API_BASE = "http://localhost:8080/api";
 const token = localStorage.getItem("token");
 
 const SessionCalendar = ({ groupId, onSessionClick }) => {
@@ -77,7 +78,6 @@ const formatDate = (dateTime) => {
           Group Sessions
         </h3>
       </div>
-
       {loading ? (
         <div className="text-center py-8 text-gray-500">Loading sessions...</div>
       ) : (
@@ -94,7 +94,7 @@ const formatDate = (dateTime) => {
                 className="text-sm border border-gray-300 dark:border-dark-border rounded px-2 py-1 dark:bg-dark-input dark:text-white"
               />
             </div>
-            {todaySessions.length > 0 ? (
+            {/* {todaySessions.length > 0 ? (
               <div className="space-y-2">
                 {todaySessions.map((session) => (
                   <div
@@ -131,11 +131,11 @@ const formatDate = (dateTime) => {
               <p className="text-sm text-gray-500 dark:text-dark-textSecondary text-center py-4">
                 No sessions on this date
               </p>
-            )}
+            )} */}
           </div>
 
           {/* Upcoming Sessions */}
-          {upcomingSessions.length > 0 && (
+          {/* {upcomingSessions.length > 0 && (
             <div>
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upcoming</h4>
               <div className="space-y-2">
@@ -153,7 +153,7 @@ const formatDate = (dateTime) => {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
         </div>
       )}
     </div>

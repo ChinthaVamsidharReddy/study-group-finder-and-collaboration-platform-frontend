@@ -3,14 +3,16 @@ import { XMarkIcon, CalendarIcon, ClockIcon, UserGroupIcon, CheckCircleIcon } fr
 import SessionPoll from './SessionPoll';
 import { useAuth } from '../../contexts/AuthContext';
 
-const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
+// const API_BASE = "http://localhost:8080/api";
+
+const API_BASE="https://study-group-finder-and-collaboration.onrender.com/api"
 const token = localStorage.getItem("token");
 
 const SessionDetailModal = ({ session, onClose, onRsvp, onVote, onFinalize, isCreator }) => {
   const { user } = useAuth();
   const userId = user?.id || localStorage.getItem("userId");
   const userRsvp = session.rsvpByUser && session.rsvpByUser[userId];
-  const [syncing, setSyncing] = useState(false);
+  // const [syncing, setSyncing] = useState(false);
 
   const formatTime = (dateTime) => {
     if (!dateTime) return '';
@@ -34,16 +36,16 @@ const SessionDetailModal = ({ session, onClose, onRsvp, onVote, onFinalize, isCr
     await onRsvp?.(session, response);
   };
 
-  const handleSyncGoogleCalendar = async () => {
-    setSyncing(true);
-    // Scaffold for Google Calendar OAuth2 integration
-    // In production, this would:
-    // 1. Open OAuth2 consent screen
-    // 2. Get access token
-    // 3. Create calendar event via Google Calendar API
-    alert('Google Calendar sync - OAuth2 integration scaffolded. In production, this would sync the session to your Google Calendar.');
-    setSyncing(false);
-  };
+  // const handleSyncGoogleCalendar = async () => {
+  //   setSyncing(true);
+  //   // Scaffold for Google Calendar OAuth2 integration
+  //   // In production, this would:
+  //   // 1. Open OAuth2 consent screen
+  //   // 2. Get access token
+  //   // 3. Create calendar event via Google Calendar API
+  //   alert('Google Calendar sync - OAuth2 integration scaffolded. In production, this would sync the session to your Google Calendar.');
+  //   setSyncing(false);
+  // };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -81,14 +83,30 @@ const SessionDetailModal = ({ session, onClose, onRsvp, onVote, onFinalize, isCr
           )}
 
           {/* Confirmed Session */}
+
+          {console.log(session)}
+          
           {session.confirmed && session.startTime && (
             <>
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-dark-textSecondary">
-                <ClockIcon className="h-4 w-4" />
-                <span>{formatDate(session.startTime)}</span>
-                <span>-</span>
-                <span>{formatTime(session.endTime)}</span>
-              </div>
+              <ClockIcon className="h-4 w-4" />
+              <span>{formatDate(session.startTime)}</span>
+              <span>–</span>
+              <span>
+                {(() => {
+                  const startDate = new Date(session.startTime).toDateString();
+                  const endDate = new Date(session.endTime).toDateString();
+                  if (startDate === endDate) {
+                    // Same day → show only end time
+                    return formatTime(session.endTime);
+                  } else {
+                    // Different day → show full end date + time
+                    return formatDate(session.endTime);
+                  }
+                })()}
+              </span>
+            </div>
+
 
               {/* RSVP Counts */}
               {session.rsvpCounts && (
@@ -142,13 +160,13 @@ const SessionDetailModal = ({ session, onClose, onRsvp, onVote, onFinalize, isCr
               </div>
 
               {/* Google Calendar Sync */}
-              <button
+              {/* <button
                 onClick={handleSyncGoogleCalendar}
                 disabled={syncing}
                 className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
               >
                 {syncing ? 'Syncing...' : 'Sync to Google Calendar'}
-              </button>
+              </button> */}
             </>
           )}
 

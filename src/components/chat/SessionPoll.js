@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 
-const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
+// const API_BASE = "http://localhost:8080/api";
+
+const API_BASE="https://study-group-finder-and-collaboration.onrender.com/api"
 const token = localStorage.getItem("token");
 
 const SessionPoll = ({ session, onVote, onFinalize, isCreator }) => {

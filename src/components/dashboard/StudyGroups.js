@@ -18,7 +18,7 @@ import {
 
 // Backend API Configuration
 // TODO: Move to environment variables (.env file)
-const API_BASE = process.env.REACT_APP_API_BASE_URL || "https://study-group-finder-and-collaboration.onrender.com/api/groups";
+const API_BASE =  "https://study-group-finder-and-collaboration.onrender.com/api/groups";
 
 // ========================================
 // BACKEND INTEGRATION GUIDE - JOIN REQUESTS MODAL

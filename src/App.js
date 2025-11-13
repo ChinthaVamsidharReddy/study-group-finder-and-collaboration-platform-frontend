@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { CourseGroupProvider } from './contexts/CourseGroupContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
@@ -135,15 +136,17 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CourseGroupProvider>
-          <ChatProvider>
-            <CoursesProvider>
-              <Router>
-                <AppContent />
-              </Router>
-            </CoursesProvider>
-          </ChatProvider>
-        </CourseGroupProvider>
+        <NotificationProvider>
+          <CourseGroupProvider>
+            <ChatProvider>
+              <CoursesProvider>
+                <Router>
+                  <AppContent />
+                </Router>
+              </CoursesProvider>
+            </ChatProvider>
+          </CourseGroupProvider>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );
