@@ -33,7 +33,7 @@ export const ChatProvider = ({ children }) => {
   const connectingRef = useRef(false);
 
   const SOCKJS_URL =
-    process.env.REACT_APP_WS_URL || "https://study-group-finder-and-collaboration.onrender.com/ws/chat";
+    process.env.REACT_APP_WS_URL || "http://localhost:8080/ws/chat";
 
   /* ---------------------- STOMP Connection ---------------------- */
   const normalizeGroupId = (value) => {

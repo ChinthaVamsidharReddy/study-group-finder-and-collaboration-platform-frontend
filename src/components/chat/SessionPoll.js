@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 // const API_BASE = "http://localhost:8080/api";
 
-const API_BASE="https://study-group-finder-and-collaboration.onrender.com/api"
+const API_BASE="http://localhost:8080/api"
 const token = localStorage.getItem("token");
 
 const SessionPoll = ({ session, onVote, onFinalize, isCreator }) => {

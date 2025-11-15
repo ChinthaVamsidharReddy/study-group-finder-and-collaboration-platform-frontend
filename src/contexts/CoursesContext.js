@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAuth } from "./AuthContext";
 
 const CoursesContext = createContext();
-const API_BASE_URL = "https://study-group-finder-and-collaboration.onrender.com/courses"; 
+const API_BASE_URL = "http://localhost:8080/courses"; 
 export const useCourses = () => useContext(CoursesContext);
 
 export const CoursesProvider = ({ children }) => {

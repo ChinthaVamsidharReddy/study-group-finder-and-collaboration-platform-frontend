@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import CourseManager from '../courses/CourseManager';
 import StudyGroups from './StudyGroups';
@@ -7,9 +8,18 @@ import ChatList from '../chat/ChatList';
 import UserSessionsCalendar from './UserSessionsCalendar';
 import CalendarPage from '../calendar/CalendarPage';
 import { useCourses } from '../../contexts/CoursesContext';
-import { AcademicCapIcon, UserGroupIcon, UsersIcon, BookOpenIcon, ChatBubbleLeftIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { 
+  GraduationCap, 
+  Users, 
+  UserPlus, 
+  BookOpen, 
+  MessageSquare, 
+  Calendar 
+} from 'lucide-react';
+import { cn } from '../../lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui';
 
-const API_BASE_URL = "https://study-group-finder-and-collaboration.onrender.com/courses"; 
+const API_BASE_URL = "http://localhost:8080/courses"; 
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -63,7 +73,7 @@ const Dashboard = () => {
 
         try {
           // 3️⃣ Fetch joined groups
-          const groupResponse = await fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/joined/${userId}`, {
+          const groupResponse = await fetch(`http://localhost:8080/api/groups/joined/${userId}`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -86,7 +96,7 @@ const Dashboard = () => {
 
         try {
           // 4️⃣ Fetch suggested peers
-          const peersResponse = await fetch(`https://study-group-finder-and-collaboration.onrender.com/courses/${userId}/peers`, {
+          const peersResponse = await fetch(`http://localhost:8080/courses/${userId}/peers`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
@@ -95,12 +105,12 @@ const Dashboard = () => {
           });
 
           if (peersResponse.ok) {
-            const peersData = await peersResponse.json();
-            const suggestedPeersCount = Array.isArray(peersData)
-              ? peersData.length
-              : peersData.count || 0;
-            setStats(prev => ({ ...prev, suggestedPeers: suggestedPeersCount }));
-          }
+        const peersData = await peersResponse.json();
+        const suggestedPeersCount = Array.isArray(peersData)
+          ? peersData.length
+          : peersData.count || 0;
+        setStats(prev => ({ ...prev, suggestedPeers: suggestedPeersCount }));
+      }
         } catch (e) {
           console.warn("Could not fetch peers (backend unavailable):", e.message);
           // Use demo data
@@ -124,143 +134,266 @@ const Dashboard = () => {
 
 
   const tabs = [
-    { id: 'overview', name: 'Overview', icon: AcademicCapIcon },
-    { id: 'courses', name: 'My Courses', icon: BookOpenIcon },
-    { id: 'groups', name: 'Study Groups', icon: UserGroupIcon },
-    { id: 'peers', name: 'Find Peers', icon: UsersIcon },
-    { id: 'chats', name: 'Chats', icon: ChatBubbleLeftIcon },
-    { id: 'calendar', name: 'Calendar', icon: CalendarIcon },
+    { id: 'overview', name: 'Overview', icon: BookOpen },
+    { id: 'courses', name: 'Courses', icon: BookOpen },
+    { id: 'groups', name: 'Study Groups', icon: Users },
+    { id: 'peers', name: 'Find Peers', icon: UserPlus },
+    { id: 'chats', name: 'Messages', icon: MessageSquare },
+    { id: 'calendar', name: 'Calendar', icon: Calendar },
   ];
 
-  const StatCard = ({ title, value, icon: Icon, color = 'primary' }) => (
-    <div className="card p-4 flex items-center gap-4 bg-white shadow-sm rounded-lg">
-      <div className={`p-3 rounded-lg bg-${color}-100`}>
-        <Icon className={`h-6 w-6 text-${color}-600`} />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500 dark:text-dark-textSecondary">{title}</p>
-        <p className="text-xl font-semibold text-gray-900 dark:text-white">{value}</p>
-      </div>
-    </div>
+  const StatCard = ({ title, value, icon: Icon, color }) => (
+    <motion.div
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    >
+      <Card className="card-interactive h-full">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-4">
+            <div className={cn(
+              "p-3 rounded-xl",
+              color === 'blue' && 'bg-primary/10 text-primary',
+              color === 'green' && 'bg-success/10 text-success',
+              color === 'purple' && 'bg-purple-100 text-purple-600'
+            )}>
+              <Icon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">{title}</p>
+              <p className="text-2xl font-bold text-foreground">{value}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 
   const OverviewTab = () => (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-8"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Welcome Section */}
-      <div className="card p-4 bg-white dark:bg-dark-card shadow-sm rounded-lg border border-gray-200 dark:border-dark-border">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back, {localStorage.getItem("name")?.split(" ")[0]}! 👋
-          </h1>
-          <p className="text-gray-600 dark:text-dark-textSecondary">Ready to connect with your study partners and ace your courses?</p>
-        </div>
-      </div>
+      <Card className="gradient-soft border-0">
+        <CardContent className="p-8">
+          <div className="mb-8">
+            <motion.h1 
+              className="text-4xl font-bold text-foreground mb-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              Welcome back, {localStorage.getItem("name")?.split(" ")[0]}! 👋
+            </motion.h1>
+            <motion.p 
+              className="text-lg text-muted-foreground"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              Ready to connect with your study partners and ace your courses?
+            </motion.p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <StatCard title="Enrolled Courses" value={stats.enrolledCourses} icon={BookOpenIcon} color="blue" />
-        <StatCard title="Study Groups" value={stats.studyGroups} icon={UserGroupIcon} color="green" />
-        <StatCard title="Suggested Peers" value={stats.suggestedPeers} icon={UsersIcon} color="purple" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <StatCard title="Enrolled Courses" value={stats.enrolledCourses} icon={BookOpen} color="blue" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <StatCard title="Study Groups" value={stats.studyGroups} icon={Users} color="green" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >{/*{alert(stats.suggestedPeers)}*/}
+          <StatCard title="Suggested Peers" value={stats.suggestedPeers} icon={UserPlus} color="purple" />
+        </motion.div>
       </div>
 
       {/* Quick Actions */}
-      <div className="card p-4 bg-white dark:bg-dark-card shadow-sm rounded-lg border border-gray-200 dark:border-dark-border">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button onClick={() => setActiveTab('courses')} className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-dark-hover text-left transition">
-            <BookOpenIcon className="h-6 w-6 text-blue-600 dark:text-blue-300 mb-2" />
-            <h4 className="font-medium text-gray-900 dark:text-white">Manage Courses</h4>
-            <p className="text-sm text-gray-500 dark:text-dark-textSecondary">Add or remove courses</p>
-          </button>
-          <button onClick={() => setActiveTab('groups')} className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-dark-hover text-left transition">
-            <UserGroupIcon className="h-6 w-6 text-green-600 dark:text-green-300 mb-2" />
-            <h4 className="font-medium text-gray-900 dark:text-white">Study Groups</h4>
-            <p className="text-sm text-gray-500 dark:text-dark-textSecondary">Join or create groups</p>
-          </button>
-          <button onClick={() => setActiveTab('peers')} className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-dark-hover text-left transition">
-            <UsersIcon className="h-6 w-6 text-purple-600 dark:text-purple-300 mb-2" />
-            <h4 className="font-medium text-gray-900 dark:text-white">Find Peers</h4>
-            <p className="text-sm text-gray-500 dark:text-dark-textSecondary">Connect with classmates</p>
-          </button>
-          <button onClick={() => window.location.href = '/profile'} className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-dark-hover text-left transition">
-            <AcademicCapIcon className="h-6 w-6 text-orange-600 dark:text-orange-300 mb-2" />
-            <h4 className="font-medium text-gray-900 dark:text-white">Update Profile</h4>
-            <p className="text-sm text-gray-500 dark:text-dark-textSecondary">Edit your information</p>
-          </button>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <motion.button 
+                onClick={() => setActiveTab('courses')} 
+                className="p-6 border border-border rounded-xl hover:bg-primary/5 hover:border-primary/20 text-left transition-all duration-200 hover:-translate-y-1"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <BookOpen className="h-8 w-8 text-primary mb-3" />
+                <h4 className="font-semibold text-foreground mb-1">Manage Courses</h4>
+                <p className="text-sm text-muted-foreground">Add or remove courses</p>
+              </motion.button>
+              <motion.button 
+                onClick={() => setActiveTab('groups')} 
+                className="p-6 border border-border rounded-xl hover:bg-success/5 hover:border-success/20 text-left transition-all duration-200 hover:-translate-y-1"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Users className="h-8 w-8 text-success mb-3" />
+                <h4 className="font-semibold text-foreground mb-1">Study Groups</h4>
+                <p className="text-sm text-muted-foreground">Join or create groups</p>
+              </motion.button>
+              <motion.button 
+                onClick={() => setActiveTab('peers')} 
+                className="p-6 border border-border rounded-xl hover:bg-purple-50 hover:border-purple-200 text-left transition-all duration-200 hover:-translate-y-1"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <UserPlus className="h-8 w-8 text-purple-600 mb-3" />
+                <h4 className="font-semibold text-foreground mb-1">Find Peers</h4>
+                <p className="text-sm text-muted-foreground">Connect with classmates</p>
+              </motion.button>
+              <motion.button 
+                onClick={() => window.location.href = '/profile'} 
+                className="p-6 border border-border rounded-xl hover:bg-warning/5 hover:border-warning/20 text-left transition-all duration-200 hover:-translate-y-1"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <GraduationCap className="h-8 w-8 text-warning mb-3" />
+                <h4 className="font-semibold text-foreground mb-1">Update Profile</h4>
+                <p className="text-sm text-muted-foreground">Edit your information</p>
+              </motion.button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Upcoming Sessions across groups */}
       <UserSessionsCalendar />
 
       {/* Recent Activity */}
-      <div className="card p-4 bg-white dark:bg-dark-card shadow-sm rounded-lg border border-gray-200 dark:border-dark-border">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Recent Activity</h3>
-        <div className="space-y-2">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 dark:bg-dark-hover rounded-lg">
-            <div className="flex items-center space-x-2 mb-1 sm:mb-0">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <p className="text-sm text-gray-600 dark:text-dark-textSecondary">You joined the <span className="font-medium">CS101 Study Group</span></p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <motion.div 
+                className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Mike Chen</span> joined your study group
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">2 hours ago</span>
+              </motion.div>
+              <motion.div 
+                className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-success rounded-full animate-pulse"></div>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Emma Wilson</span> enrolled in Calculus II
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">5 hours ago</span>
+              </motion.div>
+              <motion.div 
+                className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Sarah Johnson</span> wants to connect with you
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">2 days ago</span>
+              </motion.div>
             </div>
-            <span className="text-xs text-gray-400 dark:text-dark-textSecondary">2 hours ago</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 dark:bg-dark-hover rounded-lg">
-            <div className="flex items-center space-x-2 mb-1 sm:mb-0">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <p className="text-sm text-gray-600 dark:text-dark-textSecondary">You enrolled in <span className="font-medium">MATH201 - Calculus II</span></p>
-            </div>
-            <span className="text-xs text-gray-400 dark:text-dark-textSecondary">1 day ago</span>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 dark:bg-dark-hover rounded-lg">
-            <div className="flex items-center space-x-2 mb-1 sm:mb-0">
-              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-              <p className="text-sm text-gray-600 dark:text-dark-textSecondary"><span className="font-medium">Sarah Johnson</span> wants to connect with you</p>
-            </div>
-            <span className="text-xs text-gray-400 dark:text-dark-textSecondary">2 days ago</span>
-          </div>
-        </div>
-      </div>
-    </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 
   return (
-    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-4 overflow-x-auto">
-        <nav className="flex space-x-4 min-w-max">
-          {tabs.map(tab => {
+      <div className="border-b border-border mb-8 overflow-x-auto">
+        <nav className="flex space-x-1 min-w-max">
+          {tabs.map((tab, index) => {
             const Icon = tab.icon;
             return (
-              <button
+              <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-2 px-3 whitespace-nowrap font-medium text-sm border-b-2 ${
-                  activeTab === tab.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={cn(
+                  "flex items-center space-x-2 py-3 px-4 whitespace-nowrap font-medium text-sm rounded-t-xl transition-all duration-200",
+                  activeTab === tab.id
+                    ? "bg-primary text-primary-foreground shadow-soft"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <Icon className="h-4 w-4" />
                 <span>{tab.name}</span>
-              </button>
+              </motion.button>
             );
           })}
         </nav>
       </div>
 
 
-        {/* Tab Content */}
-        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-gray-200 dark:border-dark-border">
-          <div className="p-6">
-            {activeTab === 'overview' && <OverviewTab />}
-            {activeTab === 'courses' && <CourseManager />}
-            {activeTab === 'groups' && <StudyGroups />}
-            {activeTab === 'peers' && <PeerSuggestions />}
-            {activeTab === 'chats' && <ChatList />}
-             {activeTab === 'calendar' && <CalendarPage />}
-          </div>
+      {/* Tab Content */}
+      <motion.div 
+        className="bg-card rounded-2xl shadow-soft border border-border"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <div className="p-6">
+          {activeTab === 'overview' && <OverviewTab />}
+          {activeTab === 'courses' && <CourseManager />}
+          {activeTab === 'groups' && <StudyGroups />}
+          {activeTab === 'peers' && <PeerSuggestions />}
+          {activeTab === 'chats' && <ChatList />}
+          {activeTab === 'calendar' && <CalendarPage />}
         </div>
-      </div>
+      </motion.div>
+    </div>
   );
 };
 

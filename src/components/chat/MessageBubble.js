@@ -10,7 +10,7 @@ import {
 import PollDisplay from './PollDisplay';
 import { useAuth } from '../../contexts/AuthContext';
 
-const API_BASE ="https://study-group-finder-and-collaboration.onrender.com/api";
+const API_BASE ="http://localhost:8080/api";
 
 const MessageBubble = ({ message, onReply, onReaction, onPollVote }) => {
   const { user } = useAuth();

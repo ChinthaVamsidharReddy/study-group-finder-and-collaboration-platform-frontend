@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// TODO: Remove demo groups initialization when backend is integrated
-import { initializeDemoGroups } from "../../utils/demoGroups";
 
 import {
   PlusIcon,
@@ -14,11 +12,22 @@ import {
   ChatBubbleLeftRightIcon,
   Cog6ToothIcon,
   ClipboardDocumentListIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  SparklesIcon,
+  AcademicCapIcon,
+  ClockIcon,
+  UsersIcon,
+  BookOpenIcon,
+  ChevronRightIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Backend API Configuration
 // TODO: Move to environment variables (.env file)
-const API_BASE =  "https://study-group-finder-and-collaboration.onrender.com/api/groups";
+const API_BASE =  "http://localhost:8080/api/groups";
 
 // ========================================
 // BACKEND INTEGRATION GUIDE - JOIN REQUESTS MODAL
@@ -82,6 +91,60 @@ const COURSE_LIST = [
   // { code: "OTHER", coursename: "Other Course" },
 ];
 
+// Loading Overlay Component
+const LoadingOverlay = ({ message = "Loading..." }) => (
+  <AnimatePresence mode="wait">
+    <motion.div
+      key="loading-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"
+        />
+        <p className="text-gray-700 dark:text-gray-300 font-medium">{message}</p>
+      </motion.div>
+    </motion.div>
+  </AnimatePresence>
+);
+
+// Error Message Component
+const ErrorMessage = ({ message, onRetry }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-center gap-3"
+  >
+    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center flex-shrink-0">
+      <ExclamationTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+    </div>
+    <div className="flex-1">
+      <p className="text-red-800 dark:text-red-300 font-medium">Error</p>
+      <p className="text-red-600 dark:text-red-400 text-sm">{message}</p>
+    </div>
+    {onRetry && (
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onRetry}
+        className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+      >
+        Retry
+      </motion.button>
+    )}
+  </motion.div>
+);
+
 export default function StudyGroups() {
   const [myGroups, setMyGroups] = useState([]);
   const [joinedGroups, setJoinedGroups] = useState([]);
@@ -91,16 +154,16 @@ export default function StudyGroups() {
   );
   const [joinRequests, setJoinRequests] = useState({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinRequestsModal, setShowJoinRequestsModal] = useState(false);
   const [selectedGroupForRequests, setSelectedGroupForRequests] = useState(null);
-
-  // Filters
- const [searchTerm, setSearchTerm] = useState("");
   const [filterPrivacy, setFilterPrivacy] = useState("ALL");
   const [filterCourse, setFilterCourse] = useState("");
   const [minMembers, setMinMembers] = useState("");
   const [maxMembers, setMaxMembers] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
 
 // Add this state at the top of StudyGroups component
@@ -138,8 +201,7 @@ const handleViewJoinRequests = async (group) => {
 
 
   useEffect(() => {
-    // TODO: Remove demo initialization when backend is ready
-    initializeDemoGroups();
+    // Load groups from API - backend is working fine
     loadAllGroups();
     // TODO: Backend should handle pending requests via API
     setPendingRequests(JSON.parse(localStorage.getItem("pendingGroups")) || []);
@@ -152,6 +214,12 @@ const handleViewJoinRequests = async (group) => {
   });
   const navigate = useNavigate();
 
+  // Toast notification helper
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   // TODO: Backend Integration - Load All Groups
   // API Endpoints:
   // GET /api/groups/created/{userId} - Groups created by user
@@ -162,41 +230,63 @@ const handleViewJoinRequests = async (group) => {
   const loadAllGroups = async () => {
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
+    
+    if (!userId || !token) {
+      setError("Please log in to view study groups");
+      return;
+    }
+    
     setLoading(true);
+    setError(null);
+    
     try {
-      // Backend API calls
-      try {
-        const [createdRes, joinedRes, availableRes] = await Promise.all([
-          fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/created/${userId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/joined/${userId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/available/${userId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        const [createdJson, joinedJson, availableJson] = await Promise.all([
-          createdRes.json(),
-          joinedRes.json(),
-          availableRes.json(),
-        ]);
-
-        setMyGroups(Array.isArray(createdJson) ? createdJson.map(normalizeGroup) : []);
-        setJoinedGroups(Array.isArray(joinedJson) ? joinedJson.map(normalizeGroup) : []);
-        setAvailableGroups(Array.isArray(availableJson) ? availableJson.map(normalizeGroup) : []);
-      } catch (backendErr) {
-        // Fallback to localStorage demo mode
-        const currentUserId = userId;
-        const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
-        const created = savedGroups.filter(g => g.createdBy === currentUserId);
-        const joined = savedGroups.filter(g => g.members.includes(currentUserId) && g.createdBy !== currentUserId);
-        const available = savedGroups.filter(g => !g.members.includes(currentUserId) && g.createdBy !== currentUserId && g.privacy === "PUBLIC");
-        
-        setMyGroups(created.map(normalizeGroup));
-        setJoinedGroups(joined.map(normalizeGroup));
-        setAvailableGroups(available.map(normalizeGroup));
+      // Backend API calls - fetch all group types in parallel
+      const [createdRes, joinedRes, availableRes] = await Promise.all([
+        fetch(`http://localhost:8080/api/groups/created/${userId}`, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        }),
+        fetch(`http://localhost:8080/api/groups/joined/${userId}`, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        }),
+        fetch(`http://localhost:8080/api/groups/available/${userId}`, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        }),
+      ]);
+      
+      // Check if any response failed
+      if (!createdRes.ok || !joinedRes.ok || !availableRes.ok) {
+        throw new Error("Failed to fetch groups from server");
       }
-      setPendingRequests(JSON.parse(localStorage.getItem("pendingGroups")) || []);
+      
+      const [createdJson, joinedJson, availableJson] = await Promise.all([
+        createdRes.json(),
+        joinedRes.json(),
+        availableRes.json(),
+      ]);
+
+      // Normalize and set group data
+      setMyGroups(Array.isArray(createdJson) ? createdJson.map(normalizeGroup) : []);
+      setJoinedGroups(Array.isArray(joinedJson) ? joinedJson.map(normalizeGroup) : []);
+      setAvailableGroups(Array.isArray(availableJson) ? availableJson.map(normalizeGroup) : []);
+      
     } catch (err) {
       console.error("Error loading groups:", err);
+      setError("Failed to load study groups. Please check your connection and try again.");
+      
+      // Clear groups on error to prevent showing stale data
+      setMyGroups([]);
+      setJoinedGroups([]);
+      setAvailableGroups([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Refresh groups with toast notification
+  const refreshGroups = async () => {
+    await loadAllGroups();
+    if (!error) {
+      showToast("Study groups refreshed successfully!", 'success');
     }
   };
 
@@ -205,59 +295,54 @@ const handleViewJoinRequests = async (group) => {
   // Headers: Content-Type: application/json, Authorization: Bearer {token}
   // Request Body: {userId, name, description, courseId, privacy, code, coursename}
   // Response: Created group object with generated ID
-  const createGroup = async (formData) => {
+  const createGroup = async (payload) => {
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
+    
+    if (!userId || !token) {
+      setError("Please log in to create a group");
+      return;
+    }
+    
     setLoading(true);
     try {
       const newGroup = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        courseId: formData.courseId || "",
-        privacy: formData.privacy,
-        code: formData.code || "",
-        coursename: formData.coursename || "",
-        createdBy: userId,
-        members: [userId],
+        ...payload,
+        userId,
         memberCount: 1,
+        members: [userId],
         createdAt: new Date().toISOString(),
       };
 
-      // Try backend first
-      try {
-        const payload = {
-          userId,
-          name: formData.name,
-          description: formData.description,
-          courseId: formData.courseId || "",
-          privacy: formData.privacy,
-          code: formData.code || "",
-          coursename: formData.coursename || "",
-        };
-
-        const res = await fetch(`${API_BASE}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(await res.text() || "Failed to create group");
-      } catch (backendErr) {
-        // Fallback to localStorage
-        const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
-        savedGroups.push(newGroup);
-        localStorage.setItem("studyGroups", JSON.stringify(savedGroups));
+      // API call to create group
+      const res = await fetch("http://localhost:8080/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(newGroup),
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to create group");
       }
-
+      
+      const createdGroup = await res.json();
+      
+      // Refresh groups list
       await loadAllGroups();
       setShowCreateModal(false);
       
+      // Show success toast
+      showToast("Study group created successfully!", 'success');
+      
       // Dispatch custom event to notify chat components
       window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
-        detail: { action: 'created', groupId: newGroup.id, userId }
+        detail: { action: 'created', groupId: createdGroup.id, userId }
       }));
+      
     } catch (err) {
       console.error("Error creating group:", err);
+      setError(err.message || "Failed to create study group. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -270,50 +355,48 @@ const handleViewJoinRequests = async (group) => {
   const joinGroup = async (group) => {
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
+    
+    if (!userId || !token) {
+      setError("Please log in to join groups");
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Backend API call
-      try {
-        const res = await fetch(`${API_BASE}/join/${group.id}?userId=${userId}`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const text = await res.text();
-
-        if (text.toLowerCase().includes("request")) {
-          const updatedPending = [...pendingRequests.filter(p => p.id !== group.id), normalizeGroup(group)];
-          setPendingRequests(updatedPending);
-          localStorage.setItem("pendingGroups", JSON.stringify(updatedPending));
-        } else {
-          await loadAllGroups();
-        }
-      } catch (backendErr) {
-        // Fallback to localStorage
-        if (group.privacy === "PRIVATE") {
-          const updatedPending = [...pendingRequests.filter(p => p.id !== group.id), normalizeGroup(group)];
-          setPendingRequests(updatedPending);
-          localStorage.setItem("pendingGroups", JSON.stringify(updatedPending));
-        } else {
-          const currentUserId = userId;
-          const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
-          const groupIndex = savedGroups.findIndex(g => g.id === group.id);
-          if (groupIndex !== -1) {
-            if (!savedGroups[groupIndex].members.includes(currentUserId)) {
-              savedGroups[groupIndex].members.push(currentUserId);
-              savedGroups[groupIndex].memberCount = savedGroups[groupIndex].members.length;
-              localStorage.setItem("studyGroups", JSON.stringify(savedGroups));
-              
-              // Dispatch custom event to notify chat components
-              window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
-                detail: { action: 'joined', groupId: group.id, userId: currentUserId }
-              }));
-            }
-          }
-          await loadAllGroups();
-        }
+      // API call to join group
+      const res = await fetch(`${API_BASE}/join/${group.id}?userId=${userId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to join group");
       }
+      
+      const responseText = await res.text();
+      
+      // Handle response for private vs public groups
+      if (responseText.toLowerCase().includes("request")) {
+        // Private group - request sent
+        const updatedPending = [...pendingRequests.filter(p => p.id !== group.id), normalizeGroup(group)];
+        setPendingRequests(updatedPending);
+        localStorage.setItem("pendingGroups", JSON.stringify(updatedPending));
+        showToast("Join request sent! Waiting for admin approval.", 'info');
+      } else {
+        // Public group - joined successfully
+        await loadAllGroups();
+        showToast("Successfully joined the study group!", 'success');
+      }
+      
+      // Dispatch custom event to notify chat components
+      window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
+        detail: { action: 'joined', groupId: group.id, userId }
+      }));
+      
     } catch (err) {
       console.error("Error joining group:", err);
+      setError(err.message || "Failed to join study group. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -326,35 +409,41 @@ const handleViewJoinRequests = async (group) => {
   const leaveGroup = async (groupId) => {
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
+    
+    if (!userId || !token) {
+      setError("Please log in to leave groups");
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Backend API call
-      try {
-        const res = await fetch(`${API_BASE}/leave/${groupId}/${userId}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to leave group");
-      } catch (backendErr) {
-        // Fallback to localStorage
-        const currentUserId = userId;
-        const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
-        const groupIndex = savedGroups.findIndex(g => g.id === groupId);
-        if (groupIndex !== -1) {
-          savedGroups[groupIndex].members = savedGroups[groupIndex].members.filter(m => m !== currentUserId);
-          savedGroups[groupIndex].memberCount = savedGroups[groupIndex].members.length;
-          localStorage.setItem("studyGroups", JSON.stringify(savedGroups));
-        }
+      // API call to leave group
+      const res = await fetch(`${API_BASE}/leave/${groupId}/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to leave group");
       }
+      
+      // Update local state immediately for better UX
       setJoinedGroups(prev => prev.filter(g => g.id !== groupId));
+      
+      // Refresh groups list from server
       await loadAllGroups();
+      
+      showToast("Successfully left the study group", 'success');
       
       // Dispatch custom event to notify chat components
       window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
         detail: { action: 'left', groupId, userId }
       }));
+      
     } catch (err) {
-      console.error(err);
+      console.error("Error leaving group:", err);
+      setError(err.message || "Failed to leave study group. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -368,30 +457,42 @@ const handleViewJoinRequests = async (group) => {
   const deleteGroup = async (groupId) => {
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
-    if (!window.confirm("Are you sure you want to delete this group?")) return;
+    
+    if (!userId || !token) {
+      setError("Please log in to delete groups");
+      return;
+    }
+    
+    if (!window.confirm("Are you sure you want to delete this group? This action cannot be undone.")) {
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Backend API call
-      try {
-        const res = await fetch(`${API_BASE}/delete/${groupId}/${userId}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error(await res.text() || "Delete failed");
-      } catch (backendErr) {
-        // Fallback to localStorage
-        const savedGroups = JSON.parse(localStorage.getItem("studyGroups")) || [];
-        const filteredGroups = savedGroups.filter(g => g.id !== groupId);
-        localStorage.setItem("studyGroups", JSON.stringify(filteredGroups));
+      // API call to delete group
+      const res = await fetch(`${API_BASE}/delete/${groupId}/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to delete group");
       }
+      
+      // Refresh groups list from server
       await loadAllGroups();
+      
+      showToast("Study group deleted successfully", 'success');
       
       // Dispatch custom event to notify chat components
       window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
         detail: { action: 'deleted', groupId, userId }
       }));
+      
     } catch (err) {
       console.error("Error deleting group:", err);
+      setError(err.message || "Failed to delete study group. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -407,15 +508,27 @@ const handleViewJoinRequests = async (group) => {
   // ERROR HANDLING: Should handle network errors gracefully
   const fetchJoinRequests = async (groupId) => {
     const token = localStorage.getItem("token");
+    
+    if (!token) {
+      setError("Please log in to view join requests");
+      return;
+    }
+    
     try {
       const res = await fetch(`${API_BASE}/${groupId}/requests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch join requests");
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to fetch join requests");
+      }
+      
       const data = await res.json();
       setJoinRequests(prev => ({ ...prev, [groupId]: data || [] }));
     } catch (err) {
       console.error("Error fetching join requests:", err);
+      setError(err.message || "Failed to fetch join requests. Please try again.");
     }
   };
 
@@ -430,15 +543,22 @@ const handleViewJoinRequests = async (group) => {
     const approveRequest = async (memberId, groupId) => {
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
+    
+    if (!userId || !token) {
+      setError("Please log in to approve requests");
+      return;
+    }
+    
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/approve/${memberId}?adminId=${userId}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
+      
       if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || "approve failed");
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to approve request");
       }
 
       // Refresh admin requests and lists
@@ -450,10 +570,16 @@ const handleViewJoinRequests = async (group) => {
       localStorage.setItem("pendingGroups", JSON.stringify(updatedPending));
       setPendingRequests(updatedPending);
 
-      alert("Request approved.");
+      showToast("Join request approved successfully!", 'success');
+
+      // Dispatch custom event to notify chat components
+      window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
+        detail: { action: 'approved', groupId, userId, memberId }
+      }));
+      
     } catch (err) {
       console.error("Approve error:", err);
-      alert("Approve failed");
+      setError(err.message || "Failed to approve join request. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -470,15 +596,22 @@ const handleViewJoinRequests = async (group) => {
   const rejectRequest = async (memberId, groupId) => {
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
+    
+    if (!userId || !token) {
+      setError("Please log in to reject requests");
+      return;
+    }
+    
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/reject/${memberId}?adminId=${userId}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
+      
       if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || "reject failed");
+        const errorText = await res.text();
+        throw new Error(errorText || "Failed to reject request");
       }
 
       // Refresh admin requests
@@ -489,10 +622,16 @@ const handleViewJoinRequests = async (group) => {
       localStorage.setItem("pendingGroups", JSON.stringify(updatedPending));
       setPendingRequests(updatedPending);
 
-      alert("Request rejected.");
+      showToast("Join request rejected", 'info');
+
+      // Dispatch custom event to notify chat components
+      window.dispatchEvent(new CustomEvent('studyGroupsUpdated', {
+        detail: { action: 'rejected', groupId, userId, memberId }
+      }));
+      
     } catch (err) {
       console.error("Reject error:", err);
-      alert("Reject failed");
+      setError(err.message || "Failed to reject join request. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -750,85 +889,193 @@ const handleViewJoinRequests = async (group) => {
 
     if (!open) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div className="bg-white dark:bg-dark-card rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-2xl font-semibold text-gray-800 dark:text-white">Create New Study Group</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg font-bold">✕</button>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.2 }}
+          className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700"
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                <PlusIcon className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Study Group</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Build your learning community</p>
+              </div>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+            >
+              <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+            </motion.button>
           </div>
 
-          <form onSubmit={submit} className="space-y-5">
+          <form onSubmit={submit} className="space-y-4">
+            {/* Group Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Group Name</label>
-              <input
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
+                  <BookOpenIcon className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                </div>
+                Group Name
+              </label>
+              <motion.input
+                whileFocus={{ scale: 1.01 }}
                 required
-                className="w-full rounded-lg border border-gray-300 dark:border-dark-border focus:border-blue-500 focus:ring focus:ring-blue-100 p-2.5 outline-none transition bg-white dark:bg-dark-input text-gray-900 dark:text-white"
-                placeholder="Enter your group name"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                placeholder="Enter your group name..."
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
 
+            {/* Course Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Select Course</label>
-              <select
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
+                  <AcademicCapIcon className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+                </div>
+                Select Course
+              </label>
+              <motion.select
+                whileFocus={{ scale: 1.01 }}
                 required
-                className="w-full rounded-lg border border-gray-300 dark:border-dark-border focus:border-blue-500 focus:ring focus:ring-blue-100 p-2.5 outline-none transition bg-white dark:bg-dark-input text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 appearance-none cursor-pointer"
                 value={formData.code}
                 onChange={e => handleCourseChange(e.target.value)}
               >
-                <option value="">Choose a course</option>
+                <option value="">Choose a course...</option>
                 {COURSE_LIST.map(c => <option key={c.code} value={c.code}>{c.coursename} ({c.code})</option>)}
-              </select>
+              </motion.select>
               {formData.code && (
-                <div className="mt-2 bg-gray-50 rounded-lg p-2 text-sm border border-gray-200">
-                  <p><strong>Course:</strong> {formData.coursename}</p>
-                  <p><strong>Code:</strong> {formData.code}</p>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
+                      <AcademicCapIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{formData.coursename}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Course Code: {formData.code}</p>
+                    </div>
+                  </div>
+                </motion.div>
               )}
             </div>
 
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Description</label>
-              <textarea
-                className="w-full rounded-lg border border-gray-300 dark:border-dark-border focus:border-blue-500 focus:ring focus:ring-blue-100 p-2.5 outline-none transition min-h-[90px] resize-y bg-white dark:bg-dark-input text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-dark-textSecondary"
-                placeholder="Describe your group purpose..."
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
+                  <ChatBubbleLeftRightIcon className="h-3 w-3 text-green-600 dark:text-green-400" />
+                </div>
+                Description
+              </label>
+              <motion.textarea
+                whileFocus={{ scale: 1.01 }}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 min-h-[100px] resize-y"
+                placeholder="Describe your group's purpose and goals..."
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
+            {/* Privacy Settings */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Privacy</label>
-              <select
-                className="w-full rounded-lg border border-gray-300 dark:border-dark-border focus:border-blue-500 focus:ring focus:ring-blue-100 p-2.5 outline-none transition bg-white dark:bg-dark-input text-gray-900 dark:text-white"
-                value={formData.privacy}
-                onChange={e => setFormData({ ...formData, privacy: e.target.value })}
-              >
-                <option value="PUBLIC">🌍 Public - Anyone can join</option>
-                <option value="PRIVATE">🔒 Private - Requires admin approval</option>
-              </select>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                <div className="w-6 h-6 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center">
+                  {formData.privacy === "PUBLIC" ? (
+                    <GlobeAltIcon className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                  ) : (
+                    <LockClosedIcon className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                  )}
+                </div>
+                Privacy Settings
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setFormData({ ...formData, privacy: "PUBLIC" })}
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                    formData.privacy === "PUBLIC"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500"
+                  }`}
+                >
+                  <GlobeAltIcon className={`h-6 w-6 mb-2 ${formData.privacy === "PUBLIC" ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"}`} />
+                  <p className={`font-medium ${formData.privacy === "PUBLIC" ? "text-blue-900 dark:text-blue-100" : "text-gray-700 dark:text-gray-300"}`}>Public</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Anyone can join</p>
+                </motion.button>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setFormData({ ...formData, privacy: "PRIVATE" })}
+                  className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                    formData.privacy === "PRIVATE"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500"
+                  }`}
+                >
+                  <LockClosedIcon className={`h-6 w-6 mb-2 ${formData.privacy === "PRIVATE" ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"}`} />
+                  <p className={`font-medium ${formData.privacy === "PRIVATE" ? "text-blue-900 dark:text-blue-100" : "text-gray-700 dark:text-gray-300"}`}>Private</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Requires approval</p>
+                </motion.button>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
-              <button
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <motion.button
                 type="button"
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={onClose}
+                className="flex-1 px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="submit"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 disabled={loading}
-                className="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition disabled:opacity-60"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-60 shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2"
               >
-                {loading ? "Creating..." : "Create Group"}
-              </button>
+                {loading ? (
+                  <>
+                    <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <PlusIcon className="h-4 w-4" />
+                    Create Group
+                  </>
+                )}
+              </motion.button>
             </div>
           </form>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   };
 
@@ -836,7 +1083,7 @@ const filteredAvailableGroups = availableGroups
     .map(normalizeGroup)
     .filter(g => {
       const size=Number(maxMembers);
-      const matchesSearch = !searchTerm || (g.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = !searchQuery || (g.name || "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPrivacy = filterPrivacy === "ALL" || g.privacy === filterPrivacy;
       const matchesCourse = !filterCourse || (g.coursename || "").toLowerCase() === filterCourse.toLowerCase();
       const members = Number(g.memberCount ?? 0);
@@ -852,113 +1099,395 @@ const filteredAvailableGroups = availableGroups
   };
 
   return (
-    <div className="space-y-8 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <AnimatePresence key="main-component">
+      {loading ? (
+        <LoadingOverlay message="Loading study groups..." />
+      ) : (
+        <>
+          <motion.div 
+            key="main-content"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-8 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen"
+        >
+          {/* Error Display */}
+          {error && (
+            <ErrorMessage 
+              message={error} 
+              onRetry={() => {
+                setError(null);
+                loadAllGroups();
+              }} 
+            />
+          )}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+      >
         <div>
-          <h2 className="text-2xl font-bold dark:text-white">{headerContent.title}</h2>
-          <p className="text-sm text-gray-500 dark:text-dark-textSecondary">{headerContent.description}</p>
-        </div>
-        {headerContent.showCreateButton && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+          <motion.h2 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-2xl font-bold dark:text-white"
           >
-            <PlusIcon className="h-4 w-4" /> Create Group
-          </button>
-        )}
-      </div>
+            {headerContent.title}
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="text-sm text-gray-500 dark:text-dark-textSecondary"
+          >
+            {headerContent.description}
+          </motion.p>
+        </div>
+        <div className="flex gap-3">
+          {headerContent.showCreateButton && (
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-blue-500/25"
+            >
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              >
+                <PlusIcon className="h-5 w-5" />
+              </motion.div>
+              Create Group
+            </motion.button>
+          )}
+          {/* <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => refreshGroups()}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600 disabled:opacity-50"
+          >
+            <motion.div
+              animate={loading ? { rotate: 360 } : { rotate: 0 }}
+              transition={{ duration: 1, repeat: loading ? Infinity : 0, ease: "linear" }}
+            >
+              {/* <ArrowPathIcon className="h-5 w-5" /> 
+            </motion.div>
+            Refresh
+          </motion.button> */}
+        </div>
+      </motion.div>
 
       {/* My Groups */}
-      <section>
-        <h3 className="text-xl font-semibold mb-4 dark:text-white">
+      <motion.section
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <motion.h3 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="text-xl font-semibold mb-4 dark:text-white flex items-center gap-2"
+        >
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <UserGroupIcon className="h-4 w-4 text-white" />
+          </div>
           My Own Groups ({myGroups.length})
-        </h3>
+        </motion.h3>
 
         {myGroups.length === 0 ? (
-          <p className="text-gray-500 dark:text-dark-textSecondary">You haven't created any groups yet.</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700"
+          >
+            <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserGroupIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">You haven't created any groups yet.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Create your first study group to get started!</p>
+          </motion.div>
         ) : (
-          <div className="flex flex-wrap gap-4">
-            {myGroups.map(g => (
-              <div key={g.id} className="flex-shrink-0 w-full sm:w-[48%] md:w-[32%]">
-                <GroupCard group={normalizeGroup(g)} role="admin" />
-              </div>
-            ))}
-          </div>
+          <motion.div 
+            layout
+            className="flex flex-wrap gap-4"
+          >
+            <AnimatePresence key="my-groups">
+              {myGroups.map((g, index) => (
+                <motion.div
+                  key={g.id}
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                  transition={{ duration: 0.3, delay: 0.8 + index * 0.1 }}
+                  layout
+                  className="flex-shrink-0 w-full sm:w-[48%] md:w-[32%] lg:w-[23%]"
+                >
+                  <GroupCard group={normalizeGroup(g)} role="admin" />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
-      </section>
+      </motion.section>
 
       {/* Joined Groups */}
-      <section>
+      <motion.section
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.9 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
+      >
         {joinedGroups.length === 0 ? (
-          <p className="text-gray-500 dark:text-dark-textSecondary">You haven't joined any groups yet.</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.0 }}
+            className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700"
+          >
+            <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UsersIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">You haven't joined any groups yet.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Explore available groups to connect with peers!</p>
+          </motion.div>
         ) : (
-          <div className="flex flex-wrap gap-4">
-            {joinedGroups.map(g => (
-              <div key={g.id} className="flex-shrink-0 w-full sm:w-[48%] md:w-[32%]">
-                <GroupCard group={normalizeGroup(g)} role="joined" />
-              </div>
-            ))}
-          </div>
+          <motion.div 
+            layout
+            className="flex flex-wrap gap-4"
+          >
+            <AnimatePresence key="joined-groups">
+              {joinedGroups.map((g, index) => (
+                <motion.div
+                  key={g.id}
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                  transition={{ duration: 0.3, delay: 1.1 + index * 0.1 }}
+                  layout
+                  className="flex-shrink-0 w-full sm:w-[48%] md:w-[32%]"
+                >
+                  <GroupCard group={normalizeGroup(g)} role="joined" />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
-      </section>
+      </motion.section>
 
 
       {/* Available Groups */}
-      <section>
-        <h3 className="text-xl font-semibold mb-4 dark:text-white">
-          Available Groups ({availableGroups.length})
-        </h3>
-        <div className="flex flex-col md:flex-row gap-3 mb-4">
-          <input
-            className="input-field flex-9 p-2 border border-gray-300 dark:border-dark-border rounded-lg bg-white dark:bg-dark-input text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-dark-textSecondary"
-            placeholder="Search groups..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-          <select className="input-field flex-4 p-2 border border-gray-300 dark:border-dark-border rounded-lg bg-white dark:bg-dark-input text-gray-900 dark:text-white" value={filterPrivacy} onChange={e => setFilterPrivacy(e.target.value)}>
-            <option value="ALL">All privacy</option>
-            <option value="PUBLIC">Public</option>
-            <option value="PRIVATE">Private</option>
-          </select>
-          <select className="input-field p-2 border border-gray-300 dark:border-dark-border rounded-lg bg-white dark:bg-dark-input text-gray-900 dark:text-white" value={filterCourse} onChange={e => setFilterCourse(e.target.value)}>
-            <option value="">All courses</option>
-            {COURSE_LIST.map(c => <option key={c.code} value={c.coursename}>{c.coursename}</option>)}
-          </select>
-
-          <input
-            className="input-field p-2 border border-gray-300 dark:border-dark-border rounded-lg w-28 bg-white dark:bg-dark-input text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-dark-textSecondary"
-            type="number"
-            placeholder="Group size"
-            value={maxMembers}
-            onChange={e => setMaxMembers(e.target.value)}
-          />
-        </div>
-        {filteredAvailableGroups.length === 0 ? (
-          <p className="text-gray-500 dark:text-dark-textSecondary">No available groups found.</p>
-        ) : (
-    <div className="flex flex-wrap gap-4">
-  {filteredAvailableGroups.map(g => (
-    <div key={g.id} className="flex-shrink-0 w-full sm:w-[48%] md:w-[32%]">
-      <GroupCard group={normalizeGroup(g)} role="available" />
-    </div>
-  ))}
-</div>
-
-
-  )}
-      </section>
-
-      {/* Pending Requests */}
-      <section>
-        <h3 className="text-xl font-semibold mb-4 dark:text-white">Pending Requests Sent ({pendingRequests.length})</h3>
-        {pendingRequests.length === 0 ? (
-          <p className="text-gray-500 dark:text-dark-textSecondary">No pending requests.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pendingRequests.map(g => <GroupCard key={g.id} group={normalizeGroup(g)} role="pending" />)}
+      <motion.section
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 1.3 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
+      >
+        <motion.h3 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 1.4 }}
+          className="text-xl font-semibold mb-4 dark:text-white flex items-center gap-2"
+        >
+          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center">
+            <SparklesIcon className="h-4 w-4 text-white" />
           </div>
+          Available Groups ({availableGroups.length})
+        </motion.h3>
+
+        {/* Enhanced Filter Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 1.5 }}
+          className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm"
+        >
+          {/* Mobile-first filter layout */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                <MagnifyingGlassIcon className="h-4 w-4" />
+                Search Groups
+              </label>
+              <div className="relative">
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                  placeholder="Search by group name..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                <MagnifyingGlassIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                <FunnelIcon className="h-4 w-4" />
+                Privacy
+              </label>
+              <select 
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 appearance-none cursor-pointer"
+                value={filterPrivacy} 
+                onChange={e => setFilterPrivacy(e.target.value)}
+              >
+                <option value="ALL">All Privacy</option>
+                <option value="PUBLIC">Public Groups</option>
+                <option value="PRIVATE">Private Groups</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                <AcademicCapIcon className="h-4 w-4" />
+                Course
+              </label>
+              <select 
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 appearance-none cursor-pointer"
+                value={filterCourse} 
+                onChange={e => setFilterCourse(e.target.value)}
+              >
+                <option value="">All Courses</option>
+                {COURSE_LIST.map(c => <option key={c.code} value={c.coursename}>{c.coursename}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Second row for group size and clear filters */}
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="flex-1 sm:max-w-xs">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1">
+                <UsersIcon className="h-4 w-4" />
+                Group Size
+              </label>
+              <input
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                type="number"
+                placeholder="Max members"
+                value={maxMembers}
+                onChange={e => setMaxMembers(e.target.value)}
+              />
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setSearchQuery("");
+                setFilterPrivacy("ALL");
+                setFilterCourse("");
+                setMaxMembers("");
+              }}
+              className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 flex items-center gap-2"
+            >
+              <ArrowPathIcon className="h-4 w-4" />
+              Clear Filters
+            </motion.button>
+          </div>
+
+          {/* Active Filters Display */}
+          {(searchQuery || filterPrivacy !== "ALL" || filterCourse || maxMembers) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+            >
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium">
+                  Search: {searchQuery}
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="ml-1 hover:text-blue-600 dark:hover:text-blue-400"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {filterPrivacy !== "ALL" && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-sm font-medium">
+                  Privacy: {filterPrivacy}
+                  <button
+                    onClick={() => setFilterPrivacy("ALL")}
+                    className="ml-1 hover:text-purple-600 dark:hover:text-purple-400"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {filterCourse && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
+                  Course: {filterCourse}
+                  <button
+                    onClick={() => setFilterCourse("")}
+                    className="ml-1 hover:text-green-600 dark:hover:text-green-400"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {maxMembers && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded-full text-sm font-medium">
+                  Size: {maxMembers}
+                  <button
+                    onClick={() => setMaxMembers("")}
+                    className="ml-1 hover:text-orange-600 dark:hover:text-orange-400"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Available Groups Display */}
+        {filteredAvailableGroups.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.6 }}
+            className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700"
+          >
+            <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <SparklesIcon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No available groups found.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Try adjusting your filters or create a new group!</p>
+          </motion.div>
+        ) : (
+          <motion.div 
+            layout
+            className="flex flex-wrap gap-4"
+          >
+            <AnimatePresence key="available-groups">
+              {filteredAvailableGroups.map((g, index) => (
+                <motion.div
+                  key={g.id}
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                  transition={{ duration: 0.3, delay: 1.7 + index * 0.05 }}
+                  layout
+                  className="flex-shrink-0 w-full sm:w-[48%] md:w-[32%]"
+                >
+                  <GroupCard group={normalizeGroup(g)} role="available" />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
-      </section>
+      </motion.section>
+      </motion.div>
 
       <CreateGroupModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
       <JoinRequestsModal 
@@ -966,7 +1495,44 @@ const filteredAvailableGroups = availableGroups
         onClose={() => setShowJoinRequestsModal(false)} 
         group={selectedGroupForRequests} 
       />
-    </div>
+      
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 ${
+              toast.type === 'success' 
+                ? 'bg-green-500 text-white' 
+                : toast.type === 'error'
+                ? 'bg-red-500 text-white'
+                : 'bg-blue-500 text-white'
+            }`}
+          >
+            {toast.type === 'success' && (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            )}
+            {toast.type === 'error' && (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            )}
+            {toast.type === 'info' && (
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            )}
+            <span className="font-medium">{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      </>
+        )}
+    </AnimatePresence>
   );
 }
 
@@ -1002,3 +1568,4 @@ const filteredAvailableGroups = availableGroups
 // - Modal gracefully handles empty states
 // - Loading states prevent duplicate requests
 // ========================================
+

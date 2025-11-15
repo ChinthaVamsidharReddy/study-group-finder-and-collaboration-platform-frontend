@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ChatBubbleLeftIcon, ArrowRightIcon, BellSlashIcon, ArchiveBoxIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { cn } from '../../lib/utils';
 
 const ChatList = () => {
   const navigate = useNavigate();
@@ -26,10 +27,12 @@ const ChatList = () => {
       try {
         // Fetch both created and joined groups with token
         const [createdRes, joinedRes] = await Promise.all([
-          fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/created/${id}`, {
+          // fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/created/${id}`, {
+          fetch(`http://localhost:8080/api/groups/created/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/joined/${id}`, {
+          // fetch(`https://study-group-finder-and-collaboration.onrender.com/api/groups/joined/${id}`, {
+           fetch(`http://localhost:8080/api/groups/joined/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -163,27 +166,28 @@ const ChatList = () => {
       <button
         key={group.id}
         onClick={() => navigate(`/chat/${group.id}`)}
-        className={`p-4 bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg hover:shadow-md transition text-left w-full ${
-          isArchived ? 'opacity-75' : ''
-        }`}
+        className={cn(
+          "p-4 bg-card border rounded-lg hover:shadow-md transition text-left w-full",
+          isArchived && "opacity-75"
+        )}
       >
         <div className="flex items-start gap-4">
           <div className="text-4xl relative">
             {group.avatar || '💬'}
             {settings.muteNotifications && (
-              <div className="absolute -bottom-1 -right-1 bg-gray-500 rounded-full p-1">
-                <BellSlashIcon className="h-3 w-3 text-white" />
+              <div className="absolute -bottom-1 -right-1 bg-muted rounded-full p-1">
+                <BellSlashIcon className="h-3 w-3 text-muted-foreground" />
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                <h3 className="font-semibold text-foreground truncate">
                   {group.name}
                 </h3>
                 {settings.muteNotifications && (
-                  <BellSlashIcon className="h-4 w-4 text-gray-500" title="Muted" />
+                  <BellSlashIcon className="h-4 w-4 text-muted-foreground" title="Muted" />
                 )}
                 {isArchived && (
                   <ArchiveBoxIcon className="h-4 w-4 text-orange-500" title="Archived" />
@@ -191,30 +195,30 @@ const ChatList = () => {
               </div>
               <div className="flex items-center gap-2">
                 {lastMessageTime && (
-                  <span className="text-xs text-gray-500 dark:text-dark-textSecondary">
+                  <span className="text-xs text-muted-foreground">
                     {lastMessageTime}
                   </span>
                 )}
                 {unread > 0 && !settings.muteNotifications && (
-                  <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 flex-shrink-0">
+                  <span className="bg-primary text-primary-foreground text-xs rounded-full px-2 py-1 flex-shrink-0">
                     {unread} new
                   </span>
                 )}
                 {unread > 0 && settings.muteNotifications && (
-                  <span className="bg-gray-500 text-white text-xs rounded-full px-2 py-1 flex-shrink-0">
+                  <span className="bg-muted text-muted-foreground text-xs rounded-full px-2 py-1 flex-shrink-0">
                     {unread}
                   </span>
                 )}
               </div>
             </div>
-            <p className="text-sm text-gray-600 dark:text-dark-textSecondary truncate mb-2">
+            <p className="text-sm text-muted-foreground truncate mb-2">
               {getLastMessage(group.id)}
             </p>
             <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-500 dark:text-dark-textMuted">
+              <p className="text-xs text-muted-foreground">
                 {group.memberCount ?? 0} members • {group.coursename || 'Study Group'}
               </p>
-              <ArrowRightIcon className="h-4 w-4 text-gray-400" />
+              <ArrowRightIcon className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
         </div>
@@ -226,8 +230,8 @@ const ChatList = () => {
     
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-6">
-        <ChatBubbleLeftIcon className="h-6 w-6 text-blue-600" />
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-dark-text">Group Chats</h2>
+        <ChatBubbleLeftIcon className="h-6 w-6 text-primary" />
+        <h2 className="text-2xl font-bold text-foreground">Group Chats</h2>
       </div>
       {/* <button
   onClick={loadGroups}
@@ -238,14 +242,14 @@ const ChatList = () => {
 
 
       {joinedStudyGroups.length === 0 && archivedGroups.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-dark-card rounded-lg border border-gray-200 dark:border-dark-border">
-          <ChatBubbleLeftIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-dark-textSecondary mb-4">
+        <div className="text-center py-12 bg-card rounded-lg border">
+          <ChatBubbleLeftIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-4">
             No study groups yet. Join a group to start chatting!
           </p>
           <button
             onClick={() => navigate('/study-groups')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
           >
             Browse Study Groups
           </button>
@@ -266,15 +270,15 @@ const ChatList = () => {
             <div className="mt-6">
               <button
                 onClick={() => setShowArchived(!showArchived)}
-                className="w-full flex items-center gap-2 p-3 bg-gray-50 dark:bg-dark-input rounded-lg hover:bg-gray-100 dark:hover:bg-dark-hover transition text-left"
+                className="w-full flex items-center gap-2 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors text-left"
               >
                 {showArchived ? (
-                  <ChevronDownIcon className="h-4 w-4 text-gray-500" />
+                  <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <ChevronRightIcon className="h-4 w-4 text-gray-500" />
+                  <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
                 )}
                 <ArchiveBoxIcon className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-white">
+                <span className="text-sm font-medium text-foreground">
                   Archived ({archivedGroups.length})
                 </span>
               </button>

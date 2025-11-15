@@ -11,7 +11,7 @@ dayjs.extend(timezone);
 
 // const API_BASE = new URL("http://localhost:8080/api").href;
 
-const API_BASE= new URL("https://study-group-finder-and-collaboration.onrender.com/api").href;
+const API_BASE= new URL("http://localhost:8080/api").href;
 const token = localStorage.getItem("token");
 
 const SessionForm = ({ groupId, groups = [], onClose, onSuccess, onSessionCreated, initialDate }) => {

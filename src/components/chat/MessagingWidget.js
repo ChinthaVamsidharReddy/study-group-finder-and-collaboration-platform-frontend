@@ -13,7 +13,7 @@ import {
 import MessageBubble from "../chat/MessageBubble"; // adjust import path to your project
 import MessageInput from "../chat/MessageInput"; // optional - if you want to reuse your MessageInput
 
-const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
+const API_BASE = "http://localhost:8080/api";
 
 const MessagingWidget = () => {
   const navigate = useNavigate();

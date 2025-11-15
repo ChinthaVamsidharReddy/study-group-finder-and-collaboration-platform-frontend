@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ArrowLeftIcon, EllipsisVerticalIcon, MagnifyingGlassIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { cn } from '../../lib/utils';
 import UserPresence from './UserPresence';
 import MemberList from './MemberList';
 import PinnedMessages from './PinnedMessages';
@@ -18,7 +19,8 @@ import SessionPoll from './SessionPoll';
 import SessionDetailModal from './SessionDetailModal';
 
 
-const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
+// const API_BASE = "https://study-group-finder-and-collaboration.onrender.com/api";
+const API_BASE="http://localhost:8080/api"
 
 const ChatPage = () => {
   const { groupId } = useParams();
@@ -279,7 +281,7 @@ const ChatPage = () => {
   const fetchGroupPolls = async (id) => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`https://study-group-finder-and-collaboration.onrender.com/polls/group/${id}`, {
+      const res = await fetch(`http://localhost:8080/polls/group/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -702,15 +704,15 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-dark-bg">
+    <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <div className="bg-white dark:bg-dark-surface border-b px-3 sm:px-4 py-3 flex items-center justify-between gap-2 shadow-sm">
+      <div className="bg-card border-b px-3 sm:px-4 py-3 flex items-center justify-between gap-2 shadow-sm">
         <div className="flex items-center gap-3 flex-1">
           <button
             onClick={() => navigate('/dashboard')}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-input rounded-lg transition"
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
           >
-            <ArrowLeftIcon className="h-5 w-5 text-gray-600 dark:text-dark-text" />
+            <ArrowLeftIcon className="h-5 w-5 text-muted-foreground" />
           </button>
 
           <div className="flex flex-col min-w-0">
@@ -721,10 +723,10 @@ const ChatPage = () => {
                 className="h-10 w-10 rounded-full"
               />
               <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-dark-text truncate">
+                <h1 className="text-base sm:text-lg font-semibold text-foreground truncate">
                   {groupInfo?.name || 'Study Group'}
                 </h1>
-                <p className="text-xs text-gray-500 dark:text-dark-textSecondary">
+                <p className="text-xs text-muted-foreground">
                   {groupInfo?.coursename || 'General'}
                 </p>
               </div>
@@ -742,7 +744,7 @@ const ChatPage = () => {
         <div className="hidden sm:flex items-center gap-1">
           <button
             onClick={() => setShowSessionCalendar(!showSessionCalendar)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-input rounded-lg transition text-gray-600 dark:text-dark-text"
+            className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
             title="View Calendar"
           >
             <CalendarIcon className="h-6 w-6" />
@@ -756,28 +758,28 @@ const ChatPage = () => {
         <div className="sm:hidden relative">
           <button
             onClick={() => setShowMenu((s) => !s)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-input"
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
             aria-label="More options"
           >
-            <EllipsisVerticalIcon className="h-6 w-6 text-gray-700 dark:text-dark-text" />
+            <EllipsisVerticalIcon className="h-6 w-6 text-muted-foreground" />
           </button>
           {showMenu && (
-            <div className="absolute right-2 mt-2 w-48 bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-lg z-20">
-              <div className="border-t border-gray-100 dark:border-dark-border" />
+            <div className="absolute right-2 mt-2 w-48 bg-card border border-muted rounded-lg shadow-lg z-20">
+              <div className="border-t border-muted" />
               <div className="px-1 py-1">
-              <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-dark-input text-sm" onClick={() => setShowMenu(false)}>
+              <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-sm" onClick={() => setShowMenu(false)}>
                 <MagnifyingGlassIcon className="h-4 w-4" /> Search
               </button>
               </div>
-              <div className="border-t border-gray-100 dark:border-dark-border" />
+              <div className="border-t border-muted" />
               <div className="px-1 py-1">
-              <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-dark-input text-sm">
+              <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-sm">
                 <MemberList groupId={groupId} groupName={groupInfo?.name || 'Study Group'} members={groupInfo?.members || []} />Members List
               </button>
               </div>
-              <div className="border-t border-gray-100 dark:border-dark-border" />
+              <div className="border-t border-muted" />
               <div className="px-1 py-1">
-              <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-dark-input text-sm" >
+              <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors text-sm" >
                 <GroupSettings groupId={groupId} groupName={groupInfo?.name || 'Study Group'} members={groupInfo?.members || []} />Settings
                 </button>
               </div>
@@ -791,12 +793,12 @@ const ChatPage = () => {
           <style>{`div[style*="scrollbar-width: none"]::-webkit-scrollbar{ display: none; }`}</style>
           {/* Session Calendar Sidebar */}
           {showSessionCalendar && (
-            <div className="absolute right-4 top-4 w-80 bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-lg z-10 max-h-[80vh] overflow-y-auto">
-              <div className="p-4 border-b border-gray-200 dark:border-dark-border flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Sessions</h3>
+            <div className="absolute right-4 top-4 w-80 bg-card border border-muted rounded-lg shadow-lg z-10 max-h-[80vh] overflow-y-auto">
+              <div className="p-4 border-b border-muted flex items-center justify-between">
+                <h3 className="font-semibold text-foreground">Sessions</h3>
                 <button
                   onClick={() => setShowSessionCalendar(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-muted-foreground/90"
                 >
                   ×
                 </button>
@@ -811,7 +813,7 @@ const ChatPage = () => {
                 />
                 <button
                   onClick={() => setShowSessionForm(true)}
-                  className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  className="w-full mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
                 >
                   + Create Session
                 </button>
@@ -820,13 +822,13 @@ const ChatPage = () => {
           )}
 
           {loading ? (
-            <div className="h-full flex items-center justify-center text-gray-500">
+            <div className="h-full flex items-center justify-center text-muted-foreground">
               Loading messages...
             </div>
           ) : (
             <>
               {combinedMessages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-500">
+                <div className="h-full flex items-center justify-center text-muted-foreground">
                   {/* No messages yet. Start the conversation! */}
                 </div>
               ) : (
@@ -836,7 +838,7 @@ const ChatPage = () => {
     <div key={dateLabel}>
       {/* ✅ Date Header */}
       <div className="flex justify-center my-2">
-        <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs px-3 py-1 rounded-full">
+        <span className="bg-muted text-muted-foreground text-xs px-3 py-1 rounded-full">
           {dateLabel}
         </span>
       </div>

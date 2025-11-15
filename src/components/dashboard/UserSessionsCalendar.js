@@ -131,7 +131,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import SessionDetailModal from '../chat/SessionDetailModal';
 
 // const API_BASE = 'http://localhost:8080/api';
-const API_BASE="https://study-group-finder-and-collaboration.onrender.com/api";
+const API_BASE="http://localhost:8080/api";
 
 const UserSessionsCalendar = () => {
   const [joinedGroups, setJoinedGroups] = useState([]);

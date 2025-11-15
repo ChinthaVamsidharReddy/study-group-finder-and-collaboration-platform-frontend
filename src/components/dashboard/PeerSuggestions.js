@@ -22,13 +22,13 @@ const PeerSuggestions = () => {
     try {
       setLoading(true);
 
-      const userResponse = await fetch(`https://study-group-finder-and-collaboration.onrender.com/courses/enrolled/${userId}`, {
+      const userResponse = await fetch(`http://localhost:8080/courses/enrolled/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const myCourses = await userResponse.json();
       setCurrentUserCourses(myCourses);
 
-      const peersResponse = await fetch(`https://study-group-finder-and-collaboration.onrender.com/courses/${userId}/peers`, {
+      const peersResponse = await fetch(`http://localhost:8080/courses/${userId}/peers`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const peersData = await peersResponse.json();

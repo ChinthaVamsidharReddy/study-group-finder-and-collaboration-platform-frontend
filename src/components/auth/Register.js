@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { cn } from '../../lib/utils';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -79,32 +80,37 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-10 px-4 bg-gradient-to-r from-indigo-50 via-white to-indigo-100">
-      <div className="max-w-lg w-full bg-white shadow-lg rounded-2xl p-8">
+    <div className="min-h-screen flex items-center justify-center py-10 px-4 bg-gradient-to-r from-background via-card to-muted/20">
+      <div className="max-w-lg w-full bg-card shadow-lg rounded-2xl p-8 border">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-          <p className="mt-2 text-gray-600">
-            Join <span className="font-semibold text-indigo-600">Study Group Finder</span> today 🚀
+          <h2 className="text-3xl font-bold text-foreground">
+            Create Account
+          </h2>
+          <p className="mt-2 text-muted-foreground">
+            Join <span className="font-semibold text-primary">Study Group Finder</span> today 🚀
           </p>
         </div>
 
         <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-destructive/15 border border-destructive/50 text-destructive px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               Full Name
             </label>
             <input
               name="name"
               type="text"
               required
-              className="input-field mt-1"
+              className={cn(
+                "mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                "border-input"
+              )}
               placeholder="Enter your full name"
               value={formData.name}
               onChange={handleChange}
@@ -113,14 +119,17 @@ const Register = () => {
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               Email Address
             </label>
             <input
               name="email"
               type="email"
               required
-              className="input-field mt-1"
+              className={cn(
+                "mt-1 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                "border-input"
+              )}
               placeholder="Enter your email"
               value={formData.email}
               onChange={handleChange}
@@ -128,13 +137,16 @@ const Register = () => {
           </div>
 
           {/* Secondary School */}
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-md font-semibold text-gray-800 mb-2">Secondary School</h3>
+          <div className="p-4 bg-muted/50 rounded-lg border">
+            <h3 className="text-md font-semibold text-foreground mb-2">Secondary School</h3>
             <input
               name="secondarySchool"
               type="text"
               required
-              className="input-field mb-2"
+              className={cn(
+                "mb-2 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                "border-input"
+              )}
               placeholder="School name"
               value={formData.secondarySchool}
               onChange={handleChange}
@@ -144,7 +156,10 @@ const Register = () => {
                 name="secondarySchoolPassingYear"
                 type="number"
                 required
-                className="input-field"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Passing Year"
                 value={formData.secondarySchoolPassingYear}
                 onChange={handleChange}
@@ -153,7 +168,10 @@ const Register = () => {
                 name="secondarySchoolPercentage"
                 type="number"
                 required
-                className="input-field"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Percentage"
                 value={formData.secondarySchoolPercentage}
                 onChange={handleChange}
@@ -162,13 +180,16 @@ const Register = () => {
           </div>
 
           {/* Higher Secondary */}
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-md font-semibold text-gray-800 mb-2">Higher Secondary School</h3>
+          <div className="p-4 bg-muted/50 rounded-lg border">
+            <h3 className="text-md font-semibold text-foreground mb-2">Higher Secondary School</h3>
             <input
               name="higherSecondarySchool"
               type="text"
               required
-              className="input-field mb-2"
+              className={cn(
+                "mb-2 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                "border-input"
+              )}
               placeholder="School name"
               value={formData.higherSecondarySchool}
               onChange={handleChange}
@@ -178,7 +199,10 @@ const Register = () => {
                 name="higherSecondaryPassingYear"
                 type="number"
                 required
-                className="input-field"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Passing Year"
                 value={formData.higherSecondaryPassingYear}
                 onChange={handleChange}
@@ -187,7 +211,10 @@ const Register = () => {
                 name="higherSecondaryPercentage"
                 type="number"
                 required
-                className="input-field"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Percentage"
                 value={formData.higherSecondaryPercentage}
                 onChange={handleChange}
@@ -196,12 +223,15 @@ const Register = () => {
           </div>
 
           {/* University */}
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-md font-semibold text-gray-800 mb-2">University</h3>
+          <div className="p-4 bg-muted/50 rounded-lg border">
+            <h3 className="text-md font-semibold text-foreground mb-2">University</h3>
             <input
               name="universityName"
               type="text"
-              className="input-field mb-2"
+              className={cn(
+                "mb-2 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                "border-input"
+              )}
               placeholder="University Name"
               value={formData.universityName}
               onChange={handleChange}
@@ -210,7 +240,10 @@ const Register = () => {
               <input
                 name="universityPassingYear"
                 type="number"
-                className="input-field"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Passing Year"
                 value={formData.universityPassingYear}
                 onChange={handleChange}
@@ -218,7 +251,10 @@ const Register = () => {
               <input
                 name="universityPassingGPA"
                 type="number"
-                className="input-field"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="GPA"
                 value={formData.universityPassingGPA}
                 onChange={handleChange}
@@ -226,7 +262,10 @@ const Register = () => {
               <input
                 name="major"
                 type="text"
-                className="input-field"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Major"
                 value={formData.major}
                 onChange={handleChange}
@@ -236,26 +275,29 @@ const Register = () => {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label className="block text-sm font-medium text-foreground">Password</label>
             <div className="relative mt-1">
               <input
                 name="password"
                 type={showPassword ? "text" : "password"}
                 required
-                className="input-field pr-10"
+                className={cn(
+                  "pr-10 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Create a password"
                 value={formData.password}
                 onChange={handleChange}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  <EyeSlashIcon className="h-5 w-5" />
                 ) : (
-                  <EyeIcon className="h-5 w-5 text-gray-400" />
+                  <EyeIcon className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -263,26 +305,29 @@ const Register = () => {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <label className="block text-sm font-medium text-foreground">Confirm Password</label>
             <div className="relative mt-1">
               <input
                 name="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
                 required
-                className="input-field pr-10"
+                className={cn(
+                  "pr-10 w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder-muted-foreground transition-colors",
+                  "border-input"
+                )}
                 placeholder="Confirm password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 {showConfirmPassword ? (
-                  <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  <EyeSlashIcon className="h-5 w-5" />
                 ) : (
-                  <EyeIcon className="h-5 w-5 text-gray-400" />
+                  <EyeIcon className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -292,15 +337,15 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition disabled:opacity-50"
+            className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-md transition-colors disabled:opacity-50"
           >
             {loading ? "Creating account..." : "Create Account"}
           </button>
 
           {/* Already have account */}
-          <p className="text-sm text-center text-gray-600">
+          <p className="text-sm text-center text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link to="/login" className="font-medium text-primary hover:text-primary/80 transition-colors">
               Sign in
             </Link>
           </p>

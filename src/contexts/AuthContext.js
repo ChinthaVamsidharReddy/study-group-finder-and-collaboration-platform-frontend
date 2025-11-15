@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
 
   // TODO: Backend Integration - API Configuration
   // Spring Boot backend URL - move to environment variables
-  const API_BASE_URL = 'https://study-group-finder-and-collaboration.onrender.com';
+  const API_BASE_URL = 'http://localhost:8080';
 
   // TODO: Backend Integration - Logout
   // API Endpoint: POST /api/auth/logout

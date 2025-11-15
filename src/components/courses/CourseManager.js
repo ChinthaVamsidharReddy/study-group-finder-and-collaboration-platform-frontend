@@ -288,7 +288,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { PlusIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
-const API_BASE_URL = "https://study-group-finder-and-collaboration.onrender.com/courses"; 
+const API_BASE_URL = "http://localhost:8080/courses"; 
 
 const CourseManager = () => {
   const [availableCourses, setAvailableCourses] = useState([]);

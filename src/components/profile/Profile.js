@@ -4,7 +4,7 @@ import axios from 'axios';
 import { CameraIcon, UserIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useLocation } from 'react-router-dom';
 
-const API_BASE_URL = "https://study-group-finder-and-collaboration.onrender.com"; // Backend URL
+const API_BASE_URL = "http://localhost:8080"; // Backend URL
 
 // Helper InputField Component
 const InputField = ({ label, name, value, editMode, type = "text", onChange }) => (

@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE_URL = "https://study-group-finder-and-collaboration.onrender.com/auth";
+const API_BASE_URL = "http://localhost:8080/auth";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
